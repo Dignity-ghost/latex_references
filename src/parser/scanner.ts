@@ -7,7 +7,7 @@ import {
   ParsedCommand
 } from "../types";
 import { parseReferenceCommands, validLabelKey } from "./commands";
-import { parseMarkdownStructure } from "./markdown";
+import { parseMarkdownStructure, type LatexEnvironment } from "./markdown";
 import { lineStarts, offsetToLineCh } from "./ranges";
 
 function cleanHeading(text: string): string {
@@ -21,18 +21,18 @@ function splitCiteKeys(argument: string): string[] {
     .filter(Boolean);
 }
 
-function associatedFigure(
-  source: string,
-  figures: ReturnType<typeof parseMarkdownStructure>["figures"],
-  commandStart: number
-): (typeof figures)[number] | null {
-  for (let index = figures.length - 1; index >= 0; index -= 1) {
-    const figure = figures[index];
-    if (figure.to > commandStart) continue;
-    if (/^\s*$/u.test(source.slice(figure.to, commandStart))) return figure;
-    return null;
+function containingEnvironment(
+  environments: LatexEnvironment[],
+  offset: number
+): LatexEnvironment | null {
+  let result: LatexEnvironment | null = null;
+  for (const environment of environments) {
+    if (offset < environment.contentFrom || offset >= environment.contentTo) continue;
+    if (!result || environment.to - environment.from < result.to - result.from) {
+      result = environment;
+    }
   }
-  return null;
+  return result;
 }
 
 export function scanMarkdown(source: string, path: string): DocumentIndex {
@@ -44,33 +44,49 @@ export function scanMarkdown(source: string, path: string): DocumentIndex {
   const diagnostics: Diagnostic[] = [];
   const localLabels = new Set<string>();
 
-  const displayMath = structure.math.filter((range) => range.kind === "display");
+  const acceptedLabelCommands: ParsedCommand[] = [];
+  const acceptedKeys = new Set<string>();
+  for (const command of commands) {
+    if (command.name !== "label" || command.inMath === "inline") continue;
+    const key = command.argument.trim();
+    if (!validLabelKey(key) || acceptedKeys.has(key)) continue;
+    const environment = containingEnvironment(
+      structure.environments,
+      command.commandStart
+    );
+    if (command.inMath === "display" && environment?.kind !== "equation") continue;
+    acceptedKeys.add(key);
+    acceptedLabelCommands.push(command);
+  }
+  const equationEnvironments = structure.environments.filter(
+    (environment) => environment.kind === "equation"
+  );
   const equationNumbers = new Map<number, string>();
   let equationCounter = 0;
-  for (const range of displayMath) {
-    const hasLabel = commands.some(
+  for (const environment of equationEnvironments) {
+    const hasLabel = acceptedLabelCommands.some(
       (command) =>
-        command.name === "label" &&
-        command.commandStart >= range.from &&
-        command.commandStart < range.to
+        containingEnvironment(structure.environments, command.commandStart) === environment
     );
     if (hasLabel) {
       equationCounter += 1;
-      equationNumbers.set(range.from, String(equationCounter));
+      equationNumbers.set(environment.from, String(equationCounter));
     }
   }
 
+  const figureEnvironments = structure.environments.filter(
+    (environment) => environment.kind === "figure"
+  );
   const figureNumbers = new Map<number, string>();
   let figureCounter = 0;
-  for (const figure of structure.figures) {
-    const hasLabel = commands.some(
+  for (const environment of figureEnvironments) {
+    const hasLabel = acceptedLabelCommands.some(
       (command) =>
-        command.name === "label" &&
-        associatedFigure(source, [figure], command.commandStart) !== null
+        containingEnvironment(structure.environments, command.commandStart) === environment
     );
     if (hasLabel) {
       figureCounter += 1;
-      figureNumbers.set(figure.from, String(figureCounter));
+      figureNumbers.set(environment.from, String(figureCounter));
     }
   }
 
@@ -112,6 +128,20 @@ export function scanMarkdown(source: string, path: string): DocumentIndex {
       });
       continue;
     }
+    const environment = containingEnvironment(
+      structure.environments,
+      command.commandStart
+    );
+    if (command.inMath === "display" && environment?.kind !== "equation") {
+      diagnostics.push({
+        ...location,
+        offset: command.commandStart,
+        code: "display-math-label-without-environment",
+        message: `Display-math labels require an equation environment: ${key}`,
+        key
+      });
+      continue;
+    }
     if (localLabels.has(key)) {
       diagnostics.push({
         ...location,
@@ -127,30 +157,30 @@ export function scanMarkdown(source: string, path: string): DocumentIndex {
     let kind: LabelKind = "paragraph";
     let number: string | null = null;
     let headingText: string | null = null;
-    const mathRange = displayMath.find(
-      (range) =>
-        command.commandStart >= range.from && command.commandStart < range.to
-    );
     const heading = structure.headings.find(
       (candidate) =>
         command.commandStart >= candidate.from && command.commandStart < candidate.to
     );
-    const figure = associatedFigure(source, structure.figures, command.commandStart);
-    if (mathRange) {
+    let targetOffset = starts[location.line] ?? command.commandStart;
+    if (environment?.kind === "equation") {
       kind = "equation";
-      number = equationNumbers.get(mathRange.from) ?? null;
+      number = equationNumbers.get(environment.from) ?? null;
+      targetOffset = environment.from;
     } else if (heading) {
       kind = "heading";
       number = heading.number;
       headingText = cleanHeading(heading.text);
-    } else if (figure) {
+      targetOffset = heading.from;
+    } else if (environment?.kind === "figure") {
       kind = "figure";
-      number = figureNumbers.get(figure.from) ?? null;
-      headingText = figure.caption || null;
+      number = figureNumbers.get(environment.from) ?? null;
+      headingText = environment.caption;
+      targetOffset = environment.from;
     }
+    const targetLocation = offsetToLineCh(starts, targetOffset);
     labels.push({
-      ...location,
-      offset: command.commandStart,
+      ...targetLocation,
+      offset: targetOffset,
       key,
       path,
       kind,

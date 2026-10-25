@@ -10,7 +10,7 @@ The plugin is designed for every Obsidian platform: Windows, macOS, Linux, iOS, 
 - Render references and citations in Live Preview and Reading view.
 - Leave commands visible and editable in Source mode.
 - Jump to labels in the current note or another note.
-- Number labelled display equations, Markdown headings, and image embeds.
+- Number labelled LaTeX equation/figure environments and Markdown headings.
 - Read bibliography entries from vault-local `.bib` files and fenced `bibtex` blocks.
 - Complete label and citation keys while typing.
 - Reindex after notes and bibliography files are created, edited, renamed, moved, or deleted.
@@ -24,8 +24,10 @@ The plugin is designed for every Obsidian platform: Windows, macOS, Linux, iOS, 
 The objective is
 
 $$
+\begin{equation}
 L(\theta) = \sum_i \ell_i(\theta).
 \label{eq:objective}
+\end{equation}
 $$
 
 As shown in Equation~\eqref{eq:objective}, the method from
@@ -39,7 +41,20 @@ The Markdown file is not modified. In rendered views:
 - `\cite{lamport1994,knuth1984}` becomes numbered citation links.
 - `~` immediately before a command becomes a non-breaking space.
 
-Put only one `\label` in each display-math block in the current release. A label in inline math is reported as invalid.
+Obsidian still needs the outer `$$` delimiters, while the inner `equation` environment keeps the source easy to migrate to LaTeX. Supported numbered equation environments are `equation`, `align`, `alignat`, `flalign`, `gather`, and `multline`. Put one labelled equation environment in each display-math block. A label directly inside a bare `$$...$$` block, or inside inline math, is reported as invalid.
+
+Use native Markdown syntax and native links for ordinary Markdown images. Use `\label` only for an explicit LaTeX figure environment:
+
+```latex
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{diagram.pdf}
+\caption{System diagram}
+\label{fig:system}
+\end{figure}
+```
+
+Then `Figure~\ref{fig:system}` becomes a numbered link. Clicking it navigates to the start of the `figure` environment, not to the raw label line.
 
 ## Bibliographies
 
@@ -71,8 +86,8 @@ The plugin also recognizes note names such as `@knuth1984.md` and `knuth1984.md`
 
 - Labels are unique across the vault. If a key is duplicated, the alphabetically first path is used and validation reports the conflict.
 - Heading numbers follow the Markdown heading hierarchy within each note.
-- Only labelled display-math blocks consume equation numbers.
-- Put `\label{fig:key}` immediately after a standard Markdown image or Obsidian image embed. Only labelled images consume figure numbers.
+- Only labels inside supported, unstarred LaTeX equation environments consume equation numbers.
+- Only labels inside `figure` or `figure*` environments consume figure numbers. Standard Markdown images and Obsidian image embeds are not intercepted.
 - Citation numbers follow first appearance within each note.
 - A label on an ordinary paragraph is a navigable anchor without an automatic number; `\ref` displays its key.
 
@@ -111,7 +126,7 @@ LaTeX References works entirely inside the vault. It does not make network reque
 
 ## Known limitations
 
-- One display-math block currently has one equation number. Multiple labels in the same block resolve to that number.
+- Put at most one labelled equation environment in each display-math block in the current release.
 - Obsidian's native Graph view and native Backlinks pane do not parse LaTeX commands as Wikilinks. Clicking rendered references and citations still performs precise navigation through the plugin's own index.
 - Bibliography formatting is intentionally numeric and lightweight. The plugin does not implement a full BibTeX or CSL style engine.
 - A newly entered math label can require the formula to rerender after the editor's normal save/update cycle.

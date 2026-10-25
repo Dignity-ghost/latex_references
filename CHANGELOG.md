@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+- Number equations only when `\label` is inside an explicit numbered LaTeX equation environment.
+- Number figures only when `\label` is inside a `figure` or `figure*` environment; native Markdown images remain native.
+- Navigate structured references to the start of their heading or LaTeX environment instead of revealing the label source.
+- Report a display-math label without a supported equation environment as a validation issue.
+
 ## 0.1.1
 
 - Render both `\ref` and `\eqref` to equation labels with parenthesized numbers.

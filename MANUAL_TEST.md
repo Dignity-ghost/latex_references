@@ -18,15 +18,17 @@ Use the same test vault on desktop and mobile when possible. Copy `examples/late
 
 ## Equations
 
-- Confirm the demo formula renders as equation `(1)` without writing `\tag{1}` into the note.
-- Insert another labelled display formula before it and confirm the visible numbers update after Obsidian saves/rerenders the note.
+- Confirm a label inside `\begin{equation}...\end{equation}` renders as equation `(1)` without writing `\tag{1}` into the note.
+- Insert another labelled equation environment before it and confirm the visible numbers update after Obsidian saves/rerenders the note.
 - Confirm both `\eqref` and `\ref` render parenthesized numbers when they target equations.
+- Confirm an unlabelled bare `$$...$$` formula remains unnumbered.
+- Put `\label` directly in a bare `$$...$$` block and confirm validation reports it.
 
 ## Figures
 
-- Confirm a `\label{fig:key}` immediately after a standard Markdown image receives a figure number.
-- Confirm `图~\ref{fig:key}` renders as a clickable bare figure number and jumps to the image label.
-- Repeat with an Obsidian `![[image.png]]` embed if desired.
+- Confirm standard Markdown images and Obsidian `![[image.png]]` embeds keep their native links and are not numbered by the plugin.
+- Confirm a `\label{fig:key}` inside `\begin{figure}...\end{figure}` receives a figure number.
+- Confirm `图~\ref{fig:key}` renders as a clickable bare number and jumps to the beginning of the figure environment rather than revealing the label source.
 
 ## Navigation
 

@@ -1,12 +1,30 @@
 import { containsOffset, isEscaped, mergeRanges, SourceRange } from "./ranges";
 
+export interface LatexEnvironment extends SourceRange {
+  contentFrom: number;
+  contentTo: number;
+  name: string;
+  kind: "equation" | "figure";
+  caption: string | null;
+}
+
 export interface MarkdownStructure {
   excluded: SourceRange[];
   math: Array<SourceRange & { kind: "display" | "inline" }>;
   headings: Array<SourceRange & { depth: number; text: string; number: string }>;
-  figures: Array<SourceRange & { caption: string }>;
+  environments: LatexEnvironment[];
   bibtexBlocks: SourceRange[];
 }
+
+const EQUATION_ENVIRONMENTS = new Set([
+  "equation",
+  "align",
+  "alignat",
+  "flalign",
+  "gather",
+  "multline"
+]);
+const FIGURE_ENVIRONMENTS = new Set(["figure", "figure*"]);
 
 function lineOffsets(source: string): Array<{ from: number; to: number; text: string }> {
   const lines: Array<{ from: number; to: number; text: string }> = [];
@@ -157,36 +175,64 @@ function findHeadings(source: string, excluded: SourceRange[]): MarkdownStructur
   });
 }
 
-function findFigures(source: string, excluded: SourceRange[]): MarkdownStructure["figures"] {
-  const figures: MarkdownStructure["figures"] = [];
-  const patterns = [
-    {
-      expression: /!\[([^\]\n]*)\]\((?:\\.|[^)\n])+\)/gu,
-      caption: (match: RegExpExecArray): string => match[1].trim()
-    },
-    {
-      expression: /!\[\[([^\]\n]+)\]\]/gu,
-      caption: (match: RegExpExecArray): string => {
-        const parts = match[1].split("|").map((part) => part.trim());
-        const alias = parts.slice(1).find((part) => part && !/^\d+(?:x\d+)?$/u.test(part));
-        return alias ?? parts[0];
-      }
-    }
-  ];
+function environmentKind(name: string): LatexEnvironment["kind"] | null {
+  if (EQUATION_ENVIRONMENTS.has(name)) return "equation";
+  if (FIGURE_ENVIRONMENTS.has(name)) return "figure";
+  return null;
+}
 
-  for (const { expression, caption } of patterns) {
-    let match: RegExpExecArray | null;
-    while ((match = expression.exec(source)) !== null) {
-      if (containsOffset(excluded, match.index)) continue;
-      figures.push({
-        from: match.index,
-        to: match.index + match[0].length,
-        caption: caption(match)
+function figureCaption(source: string, from: number, to: number): string | null {
+  const match = /\\caption(?:\s*\[[^\]]*\])?\s*\{([^{}]*)\}/u.exec(
+    source.slice(from, to)
+  );
+  return match?.[1].replace(/\s+/gu, " ").trim() || null;
+}
+
+function findLatexEnvironments(
+  source: string,
+  excluded: SourceRange[]
+): MarkdownStructure["environments"] {
+  const environments: MarkdownStructure["environments"] = [];
+  const stack: Array<{
+    name: string;
+    kind: LatexEnvironment["kind"];
+    from: number;
+    contentFrom: number;
+  }> = [];
+  const expression = /\\(begin|end)\s*\{\s*([A-Za-z]+\*?)\s*\}/gu;
+  let match: RegExpExecArray | null;
+
+  while ((match = expression.exec(source)) !== null) {
+    if (containsOffset(excluded, match.index) || isEscaped(source, match.index)) continue;
+    const name = match[2];
+    const kind = environmentKind(name);
+    if (!kind) continue;
+    if (match[1] === "begin") {
+      stack.push({ name, kind, from: match.index, contentFrom: expression.lastIndex });
+      continue;
+    }
+
+    for (let index = stack.length - 1; index >= 0; index -= 1) {
+      const begin = stack[index];
+      if (begin.name !== name) continue;
+      stack.splice(index, 1);
+      environments.push({
+        from: begin.from,
+        to: expression.lastIndex,
+        contentFrom: begin.contentFrom,
+        contentTo: match.index,
+        name,
+        kind: begin.kind,
+        caption:
+          begin.kind === "figure"
+            ? figureCaption(source, begin.contentFrom, match.index)
+            : null
       });
+      break;
     }
   }
 
-  return figures.sort((a, b) => a.from - b.from);
+  return environments.sort((a, b) => a.from - b.from || b.to - a.to);
 }
 
 export function parseMarkdownStructure(source: string): MarkdownStructure {
@@ -196,7 +242,7 @@ export function parseMarkdownStructure(source: string): MarkdownStructure {
     excluded,
     math: findMathRanges(source, excluded),
     headings: findHeadings(source, excluded),
-    figures: findFigures(source, excluded),
+    environments: findLatexEnvironments(source, excluded),
     bibtexBlocks: blocks.bibtexBlocks
   };
 }

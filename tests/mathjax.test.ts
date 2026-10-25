@@ -26,8 +26,14 @@ function fakeIndex(labels: Record<string, Partial<LabelRecord>>): ReferenceIndex
 describe("rewriteMath", () => {
   it("removes labels and adds a display tag", () => {
     const index = fakeIndex({ "eq:one": { number: "3" } });
-    expect(rewriteMath(String.raw`x=y\label{eq:one}`, true, index)).toBe(
-      "x=y\n\\tag{3}"
+    expect(
+      rewriteMath(
+        String.raw`\begin{equation}x=y\label{eq:one}\end{equation}`,
+        true,
+        index
+      )
+    ).toBe(
+      "\\begin{equation}x=y\\tag{3}\n\\end{equation}"
     );
   });
 
@@ -36,6 +42,18 @@ describe("rewriteMath", () => {
     const source = String.raw`\begin{align}a&=b\label{eq:align}\end{align}`;
     expect(rewriteMath(source, true, index)).toBe(
       "\\begin{align}a&=b\\tag{2}\n\\end{align}"
+    );
+  });
+
+  it("places tags inside alignat and flalign environments", () => {
+    const index = fakeIndex({ "eq:wide": { number: "4" } });
+    const alignat = String.raw`\begin{alignat}{2}a&=b\label{eq:wide}\end{alignat}`;
+    const flalign = String.raw`\begin{flalign}a&=b\label{eq:wide}\end{flalign}`;
+    expect(rewriteMath(alignat, true, index)).toBe(
+      "\\begin{alignat}{2}a&=b\\tag{4}\n\\end{alignat}"
+    );
+    expect(rewriteMath(flalign, true, index)).toBe(
+      "\\begin{flalign}a&=b\\tag{4}\n\\end{flalign}"
     );
   });
 
@@ -57,5 +75,10 @@ describe("rewriteMath", () => {
   it("does not add a tag to inline math", () => {
     const index = fakeIndex({ inline: { number: "1" } });
     expect(rewriteMath(String.raw`x\label{inline}`, false, index)).toBe("x");
+  });
+
+  it("does not tag a display label outside a numbered equation environment", () => {
+    const index = fakeIndex({ bare: { kind: "paragraph", number: null } });
+    expect(rewriteMath(String.raw`x\label{bare}`, true, index)).toBe("x");
   });
 });

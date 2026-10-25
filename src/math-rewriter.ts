@@ -9,9 +9,10 @@ function mathText(value: string): string {
 function insertTag(tex: string, number: string): string {
   if (/\\tag\s*\{/u.test(tex)) return tex;
   const tag = `\\tag{${number}}`;
-  const environmentEnd = /\\end\s*\{(?:align\*?|gather\*?|multline\*?|equation\*?)\}\s*$/u.exec(
-    tex
-  );
+  const environmentEnd =
+    /\\end\s*\{(?:(?:align|alignat|flalign|gather|multline|equation)\*?)\}\s*$/u.exec(
+      tex
+    );
   if (environmentEnd?.index !== undefined) {
     return `${tex.slice(0, environmentEnd.index)}${tag}\n${tex.slice(environmentEnd.index)}`;
   }
@@ -41,6 +42,6 @@ export function rewriteMath(
 
   if (!display || labels.length === 0) return rewritten;
   const label = index.resolveLabel(labels[0]);
-  if (!label?.number) return rewritten;
+  if (label?.kind !== "equation" || !label.number) return rewritten;
   return insertTag(rewritten, label.number);
 }

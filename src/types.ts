@@ -35,7 +35,11 @@ export interface CitationOccurrence extends SourceLocation {
 }
 
 export interface Diagnostic extends SourceLocation {
-  code: "duplicate-label" | "invalid-label" | "inline-math-label";
+  code:
+    | "duplicate-label"
+    | "invalid-label"
+    | "inline-math-label"
+    | "display-math-label-without-environment";
   message: string;
   key?: string;
 }

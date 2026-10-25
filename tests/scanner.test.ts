@@ -14,8 +14,10 @@ Text~\ref{sec:intro} and~\cite{alpha,beta}.
 ## Detail \label{sec:detail}
 
 $$
+\begin{equation}
 x = y
 \label{eq:first}
+\end{equation}
 $$
 
 See~\eqref{eq:first}. \label{para:note}
@@ -59,12 +61,20 @@ $x \label{inline}$
 
 \label{bad key}
 
-$$a=b\label{eq:ok}$$
+$$a=b\label{eq:bare}$$
+
+$$
+\begin{equation}
+a=b
+\label{eq:ok}
+\end{equation}
+$$
 `;
     const index = scanMarkdown(source, "errors.md");
     expect(index.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
       "inline-math-label",
-      "invalid-label"
+      "invalid-label",
+      "display-math-label-without-environment"
     ]);
     expect(index.labels).toMatchObject([{ key: "eq:ok", number: "1" }]);
   });
@@ -76,13 +86,22 @@ $$a=b\label{eq:ok}$$
     expect(index.citations[0].command.options).toEqual(["p. 2"]);
   });
 
-  it("numbers labelled Markdown and Obsidian images as figures", () => {
-    const source = String.raw`![Pipeline](pipeline.svg)
+  it("numbers labels in LaTeX figure environments, not Markdown images", () => {
+    const source = String.raw`![Native Markdown image](pipeline.svg)
+\label{para:native-image-note}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{pipeline.svg}
+\caption{Pipeline}
 \label{fig:pipeline}
+\end{figure}
 
-Unlabelled text.
-
-![[result.png|Experiment result|480]] \label{fig:result}
+\begin{figure*}
+\includegraphics{result.png}
+\caption[Short result]{Experiment result}
+\label{fig:result}
+\end{figure*}
 
 Paragraph anchor. \label{para:after}
 `;
@@ -93,26 +112,37 @@ Paragraph anchor. \label{para:after}
       number,
       heading
     }))).toEqual([
+      { key: "para:native-image-note", kind: "paragraph", number: null, heading: null },
       { key: "fig:pipeline", kind: "figure", number: "1", heading: "Pipeline" },
       { key: "fig:result", kind: "figure", number: "2", heading: "Experiment result" },
       { key: "para:after", kind: "paragraph", number: null, heading: null }
     ]);
+    expect(index.labels.find((label) => label.key === "fig:pipeline")?.offset).toBe(
+      source.indexOf("\\begin{figure}")
+    );
+    expect(index.labels.find((label) => label.key === "fig:result")?.offset).toBe(
+      source.indexOf("\\begin{figure*}")
+    );
   });
 
-  it("ignores images inside frontmatter, code fences, inline code, and comments", () => {
+  it("ignores LaTeX environments inside frontmatter, code, and comments", () => {
     const source = [
       "---",
-      "cover: '![[frontmatter.png]]'",
+      "fake: '\\begin{figure}\\label{fig:frontmatter}\\end{figure}'",
       "---",
-      "`![inline](inline.png)`",
-      "```markdown",
-      "![fenced](fenced.png)",
+      "`\\begin{figure}\\label{fig:inline}\\end{figure}`",
+      "```latex",
+      "\\begin{figure}",
+      "\\label{fig:fenced}",
+      "\\end{figure}",
       "```",
-      "<!-- ![[comment.png]] -->",
-      "![Real](real.png)",
-      "\\label{fig:real}"
+      "<!-- \\begin{figure}\\label{fig:comment}\\end{figure} -->",
+      "\\begin{figure}",
+      "\\caption{Real}",
+      "\\label{fig:real}",
+      "\\end{figure}"
     ].join("\n");
-    const index = scanMarkdown(source, "ignored-figures.md");
+    const index = scanMarkdown(source, "ignored-environments.md");
     expect(index.labels).toMatchObject([
       { key: "fig:real", kind: "figure", number: "1", heading: "Real" }
     ]);

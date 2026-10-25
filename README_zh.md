@@ -10,8 +10,10 @@ LaTeX References 让 Obsidian 支持可跳转的 `\label`、`\ref`、`\eqref` �
 # 方法 \label{sec:method}
 
 $$
+\begin{equation}
 L(\theta)=\sum_i \ell_i(\theta)
 \label{eq:loss}
+\end{equation}
 $$
 
 如式~\eqref{eq:loss}和第~\ref{sec:method}节所示，
@@ -20,7 +22,9 @@ $$
 
 在 Live Preview 和阅读视图中，引用会显示为可点击的编号；源码模式仍然显示原始 LaTeX。点击后可以跳到当前文件或其他文件中的准确位置。
 
-指向公式标签时，`\ref` 和 `\eqref` 都显示带括号的编号，例如 `(1)`。标准 Markdown 图片或 Obsidian 图片嵌入后紧跟的 `\label{fig:key}` 会获得独立图片编号，`图~\ref{fig:key}` 可显示并跳转到“图 1”。
+指向公式标签时，`\ref` 和 `\eqref` 都显示带括号的编号，例如 `(1)`。公式标签必须位于显式的 `equation`、`align`、`alignat`、`flalign`、`gather` 或 `multline` 环境中；外层仍用 Obsidian 的 `$$...$$`。直接放在普通 `$$...$$` 中的标签不会编号，并会由验证命令报告。
+
+普通 Markdown 图片和 Obsidian 图片嵌入完全使用 Markdown 自己的链接，插件不会接管。只有显式 `figure` 或 `figure*` 环境内部的 `\label{fig:key}` 才会获得图片编号。点击这类引用会跳到 `\begin{figure}`，而不是把光标放在标签源码上。
 
 ## 文献来源
 
