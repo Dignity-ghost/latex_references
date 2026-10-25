@@ -39,7 +39,8 @@ export interface Diagnostic extends SourceLocation {
     | "duplicate-label"
     | "invalid-label"
     | "inline-math-label"
-    | "display-math-label-without-environment";
+    | "display-math-label-without-environment"
+    | "figure-missing-graphic";
   message: string;
   key?: string;
 }
@@ -50,7 +51,24 @@ export interface DocumentIndex {
   commands: ParsedCommand[];
   citations: CitationOccurrence[];
   citationNumbers: Map<string, number>;
+  figures: FigureRecord[];
   diagnostics: Diagnostic[];
+}
+
+export interface FigureGraphic {
+  from: number;
+  to: number;
+  path: string;
+  options: string | null;
+}
+
+export interface FigureRecord {
+  from: number;
+  to: number;
+  caption: string | null;
+  labelKey: string | null;
+  number: string | null;
+  graphics: FigureGraphic[];
 }
 
 export interface BibEntry extends SourceLocation {
@@ -58,7 +76,7 @@ export interface BibEntry extends SourceLocation {
   type: string;
   fields: Record<string, string>;
   path: string;
-  source: "bib-file" | "bibtex-block";
+  source: "bib-file";
 }
 
 export interface CitationTarget {

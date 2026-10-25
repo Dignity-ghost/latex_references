@@ -1,8 +1,14 @@
-import { MarkdownPostProcessorContext } from "obsidian";
+import {
+  MarkdownPostProcessorContext,
+  MarkdownRenderChild,
+  MarkdownRenderer
+} from "obsidian";
+import { figureToMarkdown } from "./figure-render";
 import { LatexReferencesHost } from "./host";
 import { parseReferenceCommands } from "./parser/commands";
+import { parseMarkdownStructure } from "./parser/markdown";
 import { formatReference } from "./reference-format";
-import { DocumentIndex, LabelRecord, ParsedCommand } from "./types";
+import { DocumentIndex, FigureRecord, LabelRecord, ParsedCommand } from "./types";
 
 function makeLink(
   text: string,
@@ -94,6 +100,66 @@ function shouldSkipNode(node: Text): boolean {
   );
 }
 
+async function renderFigureSection(
+  element: HTMLElement,
+  context: MarkdownPostProcessorContext,
+  host: LatexReferencesHost,
+  documentIndex: DocumentIndex | null
+): Promise<boolean> {
+  const section = context.getSectionInfo(element);
+  if (!section?.text.includes("\\begin")) return false;
+  const structure = parseMarkdownStructure(section.text);
+  const environments = structure.environments.filter(
+    (environment) => environment.kind === "figure" && environment.graphics.length > 0
+  );
+  if (environments.length === 0) return false;
+
+  let transformed = section.text;
+  for (const environment of [...environments].reverse()) {
+    const indexedLabel = environment.labelKey
+      ? documentIndex?.labels.find(
+          (label) => label.kind === "figure" && label.key === environment.labelKey
+        )
+      : null;
+    const figure: FigureRecord = {
+      from: environment.from,
+      to: environment.to,
+      caption: environment.caption,
+      labelKey: environment.labelKey,
+      number: indexedLabel?.number ?? null,
+      graphics: environment.graphics
+    };
+    const markdown = figureToMarkdown(figure, (imagePath) =>
+      host.resolveFigureImagePath(imagePath, context.sourcePath)
+    );
+    transformed = `${transformed.slice(0, environment.from)}${markdown}${transformed.slice(
+      environment.to
+    )}`;
+  }
+
+  const rendered = document.createElement("div");
+  const child = new MarkdownRenderChild(rendered);
+  context.addChild(child);
+  try {
+    await MarkdownRenderer.render(
+      host.app,
+      transformed,
+      rendered,
+      context.sourcePath,
+      child
+    );
+  } catch (error) {
+    console.error("LaTeX References: failed to render a figure section.", error);
+    return false;
+  }
+  element.replaceChildren(...Array.from(rendered.childNodes));
+  element.classList.add("latex-references-figure-section");
+  if (environments.length === 1 && environments[0].labelKey) {
+    element.dataset.label = environments[0].labelKey;
+  }
+  return true;
+}
+
 function transformTextNode(
   node: Text,
   host: LatexReferencesHost,
@@ -134,9 +200,14 @@ function transformTextNode(
 }
 
 export function createReadingPostProcessor(host: LatexReferencesHost) {
-  return (element: HTMLElement, context: MarkdownPostProcessorContext): void => {
+  return async (
+    element: HTMLElement,
+    context: MarkdownPostProcessorContext
+  ): Promise<void> => {
     if (context.sourcePath.toLowerCase().endsWith(".bib")) return;
+    if (!element.textContent?.includes("\\")) return;
     const documentIndex = host.index.getDocument(context.sourcePath);
+    if (await renderFigureSection(element, context, host, documentIndex)) return;
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     const nodes: Text[] = [];
     let current = walker.nextNode();

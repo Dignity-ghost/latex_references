@@ -13,7 +13,7 @@ export class LatexReferencesSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Bibliography paths")
       .setDesc(
-        "Optional vault-relative .bib files or folders, one per line. Leave empty to discover every .bib file. BibTeX code blocks in Markdown are always indexed."
+        "Optional vault-relative .bib files or folders, one per line. Leave empty to discover every .bib file. BibTeX code blocks in Markdown remain ordinary code and are not indexed."
       )
       .addTextArea((text) =>
         text

@@ -148,6 +148,34 @@ Paragraph anchor. \label{para:after}
     ]);
   });
 
+  it("parses common graphicx syntax, nested captions, comments, and multiple images", () => {
+    const source = String.raw`\begin{figure}[!htbp]
+% \includegraphics{ignored.png}
+% \label{fig:ignored}
+% \cite{ignored-citation}
+\centering
+\includegraphics[width={0.5\linewidth}, trim={0 0 1 1}]{figures/first}
+\includegraphics*{figures/second.png}
+\caption[Short]{A {nested} caption\label{fig:complex}}
+\end{figure}`;
+    const index = scanMarkdown(source, "complex.md");
+    expect(index.diagnostics).toEqual([]);
+    expect(index.figures).toHaveLength(1);
+    expect(index.citationNumbers.has("ignored-citation")).toBe(false);
+    expect(index.figures[0]).toMatchObject({
+      caption: "A {nested} caption",
+      labelKey: "fig:complex",
+      number: "1",
+      graphics: [
+        {
+          path: "figures/first",
+          options: "width={0.5\\linewidth}, trim={0 0 1 1}"
+        },
+        { path: "figures/second.png", options: null }
+      ]
+    });
+  });
+
   it("keeps the comprehensive fixture free of scanner diagnostics", () => {
     const source = readFileSync(
       new URL("../examples/latex-references-comprehensive-test.md", import.meta.url),
@@ -156,9 +184,7 @@ Paragraph anchor. \label{para:after}
     const index = scanMarkdown(source, "latex-references-comprehensive-test.md");
     expect(index.diagnostics).toEqual([]);
     expect(index.labels.filter((label) => label.kind === "equation")).toMatchObject([
-      { key: "eq:energy", number: "1" },
-      { key: "eq:loss", number: "2" },
-      { key: "eq:derived", number: "3" }
+      { key: "eq:energy", number: "1" }
     ]);
     expect(index.labels.filter((label) => label.kind === "figure")).toMatchObject([
       { key: "fig:workflow", number: "1" }

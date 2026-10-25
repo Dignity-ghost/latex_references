@@ -1,18 +1,29 @@
-import { App, normalizePath, TFile } from "obsidian";
+import type { App, TFile } from "obsidian";
 import { BibEntry, CitationTarget, DocumentIndex, LabelRecord } from "./types";
 import { parseBibTeX } from "./parser/bibtex";
-import { parseMarkdownStructure } from "./parser/markdown";
-import { lineStarts, offsetToLineCh } from "./parser/ranges";
 import { scanMarkdown } from "./parser/scanner";
 
 type IndexListener = () => void;
+
+function normalizeVaultPath(value: string): string {
+  const segments: string[] = [];
+  for (const segment of value.replace(/\\/gu, "/").split("/")) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") {
+      segments.pop();
+      continue;
+    }
+    segments.push(segment);
+  }
+  return segments.join("/");
+}
 
 function settingPaths(value: string): string[] {
   return value
     .split(/\r?\n|;/u)
     .map((path) => path.trim())
     .filter(Boolean)
-    .map((path) => normalizePath(path.replace(/^\.\//u, "")));
+    .map((path) => normalizeVaultPath(path));
 }
 
 function frontmatterKeys(value: unknown): string[] {
@@ -101,7 +112,7 @@ export class ReferenceIndex {
       );
     } else {
       this.documents.set(path, scanMarkdown(source, path));
-      this.bibEntriesByPath.set(path, this.bibEntriesFromMarkdown(source, path));
+      this.bibEntriesByPath.delete(path);
     }
     this.rebuildDerivedState();
   }
@@ -134,9 +145,7 @@ export class ReferenceIndex {
   resolveCitation(key: string): CitationTarget | null {
     const entry = this.bibMap.get(key);
     if (!entry) return null;
-    const notePath =
-      this.noteByCiteKey.get(key) ??
-      (entry.source === "bibtex-block" && entry.path.endsWith(".md") ? entry.path : null);
+    const notePath = this.noteByCiteKey.get(key) ?? null;
     return { entry, notePath };
   }
 
@@ -153,7 +162,7 @@ export class ReferenceIndex {
     this.sources.set(file.path, source);
     if (file.extension === "md") {
       this.documents.set(file.path, scanMarkdown(source, file.path));
-      this.bibEntriesByPath.set(file.path, this.bibEntriesFromMarkdown(source, file.path));
+      this.bibEntriesByPath.delete(file.path);
     } else if (file.extension === "bib") {
       this.bibEntriesByPath.set(
         file.path,
@@ -181,19 +190,6 @@ export class ReferenceIndex {
     if (configured.length === 0) return true;
     return configured.some(
       (candidate) => path === candidate || path.startsWith(`${candidate.replace(/\/$/u, "")}/`)
-    );
-  }
-
-  private bibEntriesFromMarkdown(source: string, path: string): BibEntry[] {
-    const structure = parseMarkdownStructure(source);
-    const starts = lineStarts(source);
-    return structure.bibtexBlocks.flatMap((range) =>
-      parseBibTeX(source.slice(range.from, range.to), path, "bibtex-block", range.from).map(
-        (entry) => {
-          const location = offsetToLineCh(starts, entry.offset);
-          return { ...entry, ...location };
-        }
-      )
     );
   }
 

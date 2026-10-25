@@ -83,9 +83,7 @@ function parseFields(body: string): Record<string, string> {
 
 export function parseBibTeX(
   source: string,
-  path: string,
-  sourceKind: BibEntry["source"] = "bib-file",
-  baseOffset = 0
+  path: string
 ): BibEntry[] {
   const entries: BibEntry[] = [];
   const starts = lineStarts(source);
@@ -111,8 +109,8 @@ export function parseBibTeX(
       type,
       fields: parseFields(entry.value.slice(comma + 1)),
       path,
-      source: sourceKind,
-      offset: baseOffset + i,
+      source: "bib-file",
+      offset: i,
       line: location.line,
       ch: location.ch
     });

@@ -1,4 +1,5 @@
 import { containsOffset, isEscaped, mergeRanges, SourceRange } from "./ranges";
+import { type FigureGraphic } from "../types";
 
 export interface LatexEnvironment extends SourceRange {
   contentFrom: number;
@@ -6,6 +7,8 @@ export interface LatexEnvironment extends SourceRange {
   name: string;
   kind: "equation" | "figure";
   caption: string | null;
+  labelKey: string | null;
+  graphics: FigureGraphic[];
 }
 
 export interface MarkdownStructure {
@@ -13,7 +16,6 @@ export interface MarkdownStructure {
   math: Array<SourceRange & { kind: "display" | "inline" }>;
   headings: Array<SourceRange & { depth: number; text: string; number: string }>;
   environments: LatexEnvironment[];
-  bibtexBlocks: SourceRange[];
 }
 
 const EQUATION_ENVIRONMENTS = new Set([
@@ -41,10 +43,8 @@ function lineOffsets(source: string): Array<{ from: number; to: number; text: st
 
 function findBlockRanges(source: string): {
   excluded: SourceRange[];
-  bibtexBlocks: SourceRange[];
 } {
   const excluded: SourceRange[] = [];
-  const bibtexBlocks: SourceRange[] = [];
   const lines = lineOffsets(source);
   let lineIndex = 0;
 
@@ -67,7 +67,6 @@ function findBlockRanges(source: string): {
     }
     const marker = fence[2][0];
     const minimumLength = fence[2].length;
-    const language = fence[3].toLowerCase();
     let endLine = lineIndex;
     for (let i = lineIndex + 1; i < lines.length; i += 1) {
       const closing = new RegExp(`^\\s*${marker}{${minimumLength},}\\s*$`).test(lines[i].text);
@@ -79,14 +78,9 @@ function findBlockRanges(source: string): {
     }
     const range = { from: line.from, to: lines[endLine].to };
     excluded.push(range);
-    if (language === "bibtex" || language === "bib") {
-      const contentFrom = line.to;
-      const contentTo = endLine > lineIndex ? lines[endLine].from : lines[endLine].to;
-      bibtexBlocks.push({ from: contentFrom, to: contentTo });
-    }
     lineIndex = endLine + 1;
   }
-  return { excluded, bibtexBlocks };
+  return { excluded };
 }
 
 function findInlineExcluded(source: string, initial: SourceRange[]): SourceRange[] {
@@ -181,11 +175,125 @@ function environmentKind(name: string): LatexEnvironment["kind"] | null {
   return null;
 }
 
-function figureCaption(source: string, from: number, to: number): string | null {
-  const match = /\\caption(?:\s*\[[^\]]*\])?\s*\{([^{}]*)\}/u.exec(
-    source.slice(from, to)
-  );
-  return match?.[1].replace(/\s+/gu, " ").trim() || null;
+function inLatexComment(source: string, offset: number): boolean {
+  const lineStart = source.lastIndexOf("\n", offset - 1) + 1;
+  for (let index = lineStart; index < offset; index += 1) {
+    if (source[index] === "%" && !isEscaped(source, index)) return true;
+  }
+  return false;
+}
+
+function skipLatexSpacing(source: string, start: number, limit: number): number {
+  let cursor = start;
+  while (cursor < limit) {
+    if (/\s/u.test(source[cursor])) {
+      cursor += 1;
+      continue;
+    }
+    if (source[cursor] === "%" && !isEscaped(source, cursor)) {
+      const newline = source.indexOf("\n", cursor + 1);
+      cursor = newline === -1 || newline >= limit ? limit : newline + 1;
+      continue;
+    }
+    break;
+  }
+  return cursor;
+}
+
+function readLatexDelimited(
+  source: string,
+  start: number,
+  limit: number,
+  open: string,
+  close: string
+): { value: string; end: number } | null {
+  if (source[start] !== open) return null;
+  let depth = 1;
+  for (let cursor = start + 1; cursor < limit; cursor += 1) {
+    if (source[cursor] === "%" && !isEscaped(source, cursor)) {
+      const newline = source.indexOf("\n", cursor + 1);
+      if (newline === -1 || newline >= limit) return null;
+      cursor = newline;
+      continue;
+    }
+    if (isEscaped(source, cursor)) continue;
+    if (source[cursor] === open) depth += 1;
+    if (source[cursor] === close) depth -= 1;
+    if (depth === 0) {
+      return { value: source.slice(start + 1, cursor), end: cursor + 1 };
+    }
+  }
+  return null;
+}
+
+function withoutLatexComments(value: string): string {
+  return value
+    .split("\n")
+    .map((line) => {
+      for (let index = 0; index < line.length; index += 1) {
+        if (line[index] === "%" && !isEscaped(line, index)) return line.slice(0, index);
+      }
+      return line;
+    })
+    .join(" ")
+    .trim();
+}
+
+function figureMetadata(
+  source: string,
+  from: number,
+  to: number
+): { caption: string | null; labelKey: string | null; graphics: FigureGraphic[] } {
+  const graphics: FigureGraphic[] = [];
+  let caption: string | null = null;
+  let labelKey: string | null = null;
+
+  for (let cursor = from; cursor < to; cursor += 1) {
+    if (source[cursor] === "%" && !isEscaped(source, cursor)) {
+      const newline = source.indexOf("\n", cursor + 1);
+      if (newline === -1 || newline >= to) break;
+      cursor = newline;
+      continue;
+    }
+    if (source[cursor] !== "\\" || isEscaped(source, cursor)) continue;
+    const match = /^\\(includegraphics\*?|caption|label)(?![A-Za-z])/u.exec(
+      source.slice(cursor, to)
+    );
+    if (!match) continue;
+    const command = match[1];
+    const commandStart = cursor;
+    let argumentStart = skipLatexSpacing(source, cursor + match[0].length, to);
+    let options: string | null = null;
+    if (source[argumentStart] === "[") {
+      const optional = readLatexDelimited(source, argumentStart, to, "[", "]");
+      if (!optional) continue;
+      options = withoutLatexComments(optional.value);
+      argumentStart = skipLatexSpacing(source, optional.end, to);
+    }
+    const argument = readLatexDelimited(source, argumentStart, to, "{", "}");
+    if (!argument) continue;
+    const value = withoutLatexComments(argument.value);
+    if (command.startsWith("includegraphics")) {
+      if (value) {
+        graphics.push({
+          from: commandStart,
+          to: argument.end,
+          path: value,
+          options
+        });
+      }
+    } else if (command === "caption" && caption === null) {
+      const visibleCaption = value.replace(/\\label\s*\{[^{}]*\}/gu, "").trim();
+      caption = visibleCaption || null;
+      // A label nested in a caption is valid LaTeX and must still be discovered.
+      continue;
+    } else if (command === "label" && labelKey === null) {
+      labelKey = value || null;
+    }
+    cursor = argument.end - 1;
+  }
+
+  return { caption, labelKey, graphics };
 }
 
 function findLatexEnvironments(
@@ -203,7 +311,13 @@ function findLatexEnvironments(
   let match: RegExpExecArray | null;
 
   while ((match = expression.exec(source)) !== null) {
-    if (containsOffset(excluded, match.index) || isEscaped(source, match.index)) continue;
+    if (
+      containsOffset(excluded, match.index) ||
+      isEscaped(source, match.index) ||
+      inLatexComment(source, match.index)
+    ) {
+      continue;
+    }
     const name = match[2];
     const kind = environmentKind(name);
     if (!kind) continue;
@@ -216,6 +330,10 @@ function findLatexEnvironments(
       const begin = stack[index];
       if (begin.name !== name) continue;
       stack.splice(index, 1);
+      const metadata =
+        begin.kind === "figure"
+          ? figureMetadata(source, begin.contentFrom, match.index)
+          : { caption: null, labelKey: null, graphics: [] };
       environments.push({
         from: begin.from,
         to: expression.lastIndex,
@@ -223,10 +341,7 @@ function findLatexEnvironments(
         contentTo: match.index,
         name,
         kind: begin.kind,
-        caption:
-          begin.kind === "figure"
-            ? figureCaption(source, begin.contentFrom, match.index)
-            : null
+        ...metadata
       });
       break;
     }
@@ -235,14 +350,33 @@ function findLatexEnvironments(
   return environments.sort((a, b) => a.from - b.from || b.to - a.to);
 }
 
+function findLatexCommentRanges(
+  source: string,
+  environments: MarkdownStructure["environments"]
+): SourceRange[] {
+  const ranges: SourceRange[] = [];
+  for (const environment of environments) {
+    for (let cursor = environment.contentFrom; cursor < environment.contentTo; cursor += 1) {
+      if (source[cursor] !== "%" || isEscaped(source, cursor)) continue;
+      const newline = source.indexOf("\n", cursor + 1);
+      const to = newline === -1 || newline > environment.contentTo
+        ? environment.contentTo
+        : newline;
+      ranges.push({ from: cursor, to });
+      cursor = to;
+    }
+  }
+  return mergeRanges(ranges);
+}
+
 export function parseMarkdownStructure(source: string): MarkdownStructure {
   const blocks = findBlockRanges(source);
   const excluded = findInlineExcluded(source, blocks.excluded);
+  const environments = findLatexEnvironments(source, excluded);
   return {
-    excluded,
+    excluded: mergeRanges([...excluded, ...findLatexCommentRanges(source, environments)]),
     math: findMathRanges(source, excluded),
     headings: findHeadings(source, excluded),
-    environments: findLatexEnvironments(source, excluded),
-    bibtexBlocks: blocks.bibtexBlocks
+    environments
   };
 }

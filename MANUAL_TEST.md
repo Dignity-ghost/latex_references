@@ -1,6 +1,6 @@
 # Manual test checklist
 
-Use the same test vault on desktop and mobile when possible. Copy `examples/latex-references-comprehensive-test.md` and `examples/latex-references-test-figure.svg` into the same vault folder before testing.
+Use the same test vault on desktop and mobile when possible. Copy `examples/latex-references-comprehensive-test.md`, `examples/references.bib`, and `examples/latex-references-test-figure.svg` into the same vault folder before testing.
 
 ## Installation
 
@@ -15,6 +15,7 @@ Use the same test vault on desktop and mobile when possible. Copy `examples/late
 - In Reading view, confirm labels are hidden and references are rendered.
 - Confirm `~` before a rendered command does not appear as a tilde and behaves as non-breaking spacing.
 - Confirm commands inside inline code, fenced code, frontmatter, and HTML comments remain unchanged.
+- Open a note containing no supported LaTeX commands and confirm native links, embeds, tasks, callouts, code, and math behave exactly as they do with the plugin disabled.
 
 ## Equations
 
@@ -27,8 +28,10 @@ Use the same test vault on desktop and mobile when possible. Copy `examples/late
 ## Figures
 
 - Confirm standard Markdown images and Obsidian `![[image.png]]` embeds keep their native links and are not numbered by the plugin.
-- Confirm a `\label{fig:key}` inside `\begin{figure}...\end{figure}` receives a figure number.
-- Confirm `图~\ref{fig:key}` renders as a clickable bare number and jumps to the beginning of the figure environment rather than revealing the label source.
+- Confirm the regular LaTeX `figure` fixture renders its extensionless `\includegraphics` path as the SVG through Obsidian's native renderer.
+- Confirm its multiline graphicx options, `\caption`, and `\label{fig:workflow}` are parsed, while the image uses Obsidian's default size rather than emulating `width=0.75\linewidth`.
+- Confirm `图~\ref{fig:workflow}` renders as a clickable bare number and scrolls to the rendered figure without moving the cursor into the environment or revealing the label source.
+- Move the cursor into the figure and confirm the unmodified regular LaTeX source appears for editing; move it out and confirm the preview returns.
 
 ## Navigation
 
@@ -43,6 +46,8 @@ Use the same test vault on desktop and mobile when possible. Copy `examples/late
 - Type `\ref{`, `\eqref{`, and `\cite{` and confirm suggestions work with both hardware and mobile keyboards.
 - Confirm multiple keys in `\cite{knuth1984,lamport1994}` render as `[1, 2]`.
 - Confirm tapping a citation opens its literature note when one is mapped, otherwise its `.bib` entry.
+- Confirm the fixture citations resolve only after `references.bib` is present and jump to the exact `.bib` entry.
+- Put a different entry in a fenced `bibtex` block in Markdown and confirm it remains code and is reported missing when cited.
 - Add a missing citekey and confirm it appears as a red unresolved link.
 
 ## Diagnostics and resilience

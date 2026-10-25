@@ -24,6 +24,11 @@ function fakeIndex(labels: Record<string, Partial<LabelRecord>>): ReferenceIndex
 }
 
 describe("rewriteMath", () => {
+  it("returns unrelated MathJax input byte-for-byte unchanged", () => {
+    const source = String.raw`\frac{a_1}{b_2} + \begin{matrix}1&2\\3&4\end{matrix}`;
+    expect(rewriteMath(source, true, fakeIndex({}))).toBe(source);
+  });
+
   it("removes labels and adds a display tag", () => {
     const index = fakeIndex({ "eq:one": { number: "3" } });
     expect(

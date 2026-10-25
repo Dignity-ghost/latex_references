@@ -89,6 +89,25 @@ export function scanMarkdown(source: string, path: string): DocumentIndex {
       figureNumbers.set(environment.from, String(figureCounter));
     }
   }
+  const figures = figureEnvironments.map((environment) => ({
+    from: environment.from,
+    to: environment.to,
+    caption: environment.caption,
+    labelKey: environment.labelKey,
+    number: figureNumbers.get(environment.from) ?? null,
+    graphics: environment.graphics
+  }));
+  for (const figure of figures) {
+    if (figure.graphics.length > 0) continue;
+    const location = offsetToLineCh(starts, figure.from);
+    diagnostics.push({
+      ...location,
+      offset: figure.from,
+      code: "figure-missing-graphic",
+      message: "Figure environment has no supported \\includegraphics command.",
+      key: figure.labelKey ?? undefined
+    });
+  }
 
   const citationNumbers = new Map<string, number>();
   let nextCitationNumber = 1;
@@ -189,7 +208,7 @@ export function scanMarkdown(source: string, path: string): DocumentIndex {
     });
   }
 
-  return { path, labels, commands, citations, citationNumbers, diagnostics };
+  return { path, labels, commands, citations, citationNumbers, figures, diagnostics };
 }
 
 export function referenceCommands(index: DocumentIndex): ParsedCommand[] {

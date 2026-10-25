@@ -8,11 +8,12 @@ import {
   ViewUpdate,
   WidgetType
 } from "@codemirror/view";
-import { editorLivePreviewField } from "obsidian";
+import { Component, editorLivePreviewField, MarkdownRenderer } from "obsidian";
+import { figureToMarkdown } from "./figure-render";
 import { LatexReferencesHost } from "./host";
 import { scanMarkdown } from "./parser/scanner";
 import { formatReference } from "./reference-format";
-import { LabelRecord, ParsedCommand } from "./types";
+import { FigureRecord, LabelRecord, ParsedCommand } from "./types";
 
 const refreshEffect = StateEffect.define<void>();
 const editorViews = new Set<EditorView>();
@@ -161,6 +162,59 @@ class LabelWidget extends WidgetType {
   }
 }
 
+class FigureWidget extends WidgetType {
+  private component: Component | null = null;
+
+  constructor(
+    private readonly host: LatexReferencesHost,
+    private readonly figure: FigureRecord,
+    private readonly sourcePath: string,
+    private readonly markdown: string
+  ) {
+    super();
+  }
+
+  eq(other: FigureWidget): boolean {
+    return (
+      other.sourcePath === this.sourcePath &&
+      other.figure.from === this.figure.from &&
+      other.figure.to === this.figure.to &&
+      other.markdown === this.markdown
+    );
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const container = document.createElement("div");
+    container.className = "latex-references-figure";
+    container.dataset.label = this.figure.labelKey ?? "";
+    const component = new Component();
+    component.load();
+    this.component = component;
+    void MarkdownRenderer.render(
+      this.host.app,
+      this.markdown,
+      container,
+      this.sourcePath,
+      component
+    )
+      .catch((error) => {
+        console.error("LaTeX References: failed to render a figure preview.", error);
+        container.textContent = "Figure preview unavailable. Move the cursor here to edit the source.";
+      })
+      .finally(() => view.requestMeasure());
+    return container;
+  }
+
+  destroy(): void {
+    this.component?.unload();
+    this.component = null;
+  }
+
+  ignoreEvent(): boolean {
+    return true;
+  }
+}
+
 function labelDisplay(command: ParsedCommand, label: LabelRecord | null): string {
   const name = command.name === "eqref" ? "eqref" : "ref";
   return formatReference(name, label, command.argument);
@@ -172,14 +226,51 @@ function buildDecorations(
 ): DecorationSet {
   if (!view.state.field(editorLivePreviewField, false)) return Decoration.none;
   const source = view.state.doc.toString();
+  if (!source.includes("\\")) return Decoration.none;
   const path = host.resolveEditorPath(view) ?? "__live__.md";
   if (path.toLowerCase().endsWith(".bib")) return Decoration.none;
   const documentIndex = scanMarkdown(source, path);
   const localLabels = new Map(documentIndex.labels.map((label) => [label.key, label]));
   const decorations: Array<{ from: number; to: number; decoration: Decoration }> = [];
+  const renderedFigures: Array<{ from: number; to: number }> = [];
+
+  for (const figure of documentIndex.figures) {
+    if (figure.graphics.length === 0 || selectionTouches(view, figure.from, figure.to)) {
+      continue;
+    }
+    const startLine = view.state.doc.lineAt(figure.from);
+    const endLine = view.state.doc.lineAt(Math.max(figure.from, figure.to - 1));
+    if (
+      source.slice(startLine.from, figure.from).trim() ||
+      source.slice(figure.to, endLine.to).trim()
+    ) {
+      continue;
+    }
+    const from = startLine.from;
+    const to = endLine.to < view.state.doc.length ? endLine.to + 1 : endLine.to;
+    const markdown = figureToMarkdown(figure, (imagePath) =>
+      host.resolveFigureImagePath(imagePath, path)
+    );
+    decorations.push({
+      from,
+      to,
+      decoration: Decoration.replace({
+        block: true,
+        widget: new FigureWidget(host, figure, path, markdown)
+      })
+    });
+    renderedFigures.push({ from: figure.from, to: figure.to });
+  }
 
   for (const command of documentIndex.commands) {
     if (command.inMath !== null) continue;
+    if (
+      renderedFigures.some(
+        (figure) => command.commandStart >= figure.from && command.commandStart < figure.to
+      )
+    ) {
+      continue;
+    }
     if (selectionTouches(view, command.start, command.end)) continue;
 
     if (command.name === "label") {

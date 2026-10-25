@@ -1,6 +1,6 @@
 {
   "name": "latex-references",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Obsidian references and citations that keep portable LaTeX syntax in Markdown.",
   "main": "main.js",
   "type": "module",

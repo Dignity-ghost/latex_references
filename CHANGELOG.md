@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3
+
+- Preserve native Obsidian behavior with explicit no-op paths for notes and math that contain no supported LaTeX commands.
+- Index bibliography entries only from vault-local `.bib` files; fenced BibTeX in Markdown remains ordinary code.
+- Parse regular `figure`/`figure*` environments and preview common `graphicx` syntax through Obsidian's native Markdown renderer without changing the source.
+- Keep structured-reference navigation from moving the editor cursor into a rendered equation, heading, or figure.
+- Navigate unmapped citations to their exact `.bib` entries and normalize configured bibliography paths across platforms.
+
 ## 0.1.2
 
 - Number equations only when `\label` is inside an explicit numbered LaTeX equation environment.

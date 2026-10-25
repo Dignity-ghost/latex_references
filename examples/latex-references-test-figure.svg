@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="300" viewBox="0 0 960 300" role="img" aria-labelledby="title description">
+  <title id="title">LaTeX figure to Obsidian Markdown preview</title>
+  <desc id="description">A portable LaTeX figure source is rendered through Obsidian without changing the file.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#171b2e"/>
+      <stop offset="1" stop-color="#35285f"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#c3b8ff"/>
+    </marker>
+  </defs>
+  <rect width="960" height="300" rx="24" fill="url(#background)"/>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <rect x="55" y="72" width="245" height="156" rx="18" fill="#252b48" stroke="#927ff8" stroke-width="3"/>
+    <text x="177" y="122" fill="#fff" font-size="24" font-weight="700">Regular LaTeX</text>
+    <text x="177" y="160" fill="#ddd8f5" font-size="18">figure · includegraphics</text>
+    <text x="177" y="193" fill="#aaa4cc" font-size="16">source preserved</text>
+    <path d="M315 150 H397" fill="none" stroke="#c3b8ff" stroke-width="5" marker-end="url(#arrow)"/>
+    <rect x="405" y="72" width="170" height="156" rx="18" fill="#725cd6"/>
+    <text x="490" y="137" fill="#fff" font-size="24" font-weight="700">Plugin</text>
+    <text x="490" y="175" fill="#f2efff" font-size="17">display adapter</text>
+    <path d="M583 150 H665" fill="none" stroke="#c3b8ff" stroke-width="5" marker-end="url(#arrow)"/>
+    <rect x="680" y="72" width="225" height="156" rx="18" fill="#252b48" stroke="#927ff8" stroke-width="3"/>
+    <text x="792" y="122" fill="#fff" font-size="24" font-weight="700">Obsidian</text>
+    <text x="792" y="160" fill="#ddd8f5" font-size="18">native Markdown image</text>
+    <text x="792" y="193" fill="#aaa4cc" font-size="16">desktop + mobile</text>
+  </g>
+</svg>

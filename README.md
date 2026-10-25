@@ -11,7 +11,8 @@ The plugin is designed for every Obsidian platform: Windows, macOS, Linux, iOS, 
 - Leave commands visible and editable in Source mode.
 - Jump to labels in the current note or another note.
 - Number labelled LaTeX equation/figure environments and Markdown headings.
-- Read bibliography entries from vault-local `.bib` files and fenced `bibtex` blocks.
+- Read bibliography entries only from vault-local `.bib` files.
+- Preview standard LaTeX `figure` environments through Obsidian's native Markdown renderer.
 - Complete label and citation keys while typing.
 - Reindex after notes and bibliography files are created, edited, renamed, moved, or deleted.
 - Report unresolved references, missing citation keys, invalid labels, and duplicate labels.
@@ -43,7 +44,7 @@ The Markdown file is not modified. In rendered views:
 
 Obsidian still needs the outer `$$` delimiters, while the inner `equation` environment keeps the source easy to migrate to LaTeX. Supported numbered equation environments are `equation`, `align`, `alignat`, `flalign`, `gather`, and `multline`. Put one labelled equation environment in each display-math block. A label directly inside a bare `$$...$$` block, or inside inline math, is reported as invalid.
 
-Use native Markdown syntax and native links for ordinary Markdown images. Use `\label` only for an explicit LaTeX figure environment:
+Use native Markdown syntax and native links for ordinary Markdown images; the plugin does not inspect or replace them. When portability to a LaTeX project matters, use a regular LaTeX figure environment:
 
 ```latex
 \begin{figure}[htbp]
@@ -54,15 +55,18 @@ Use native Markdown syntax and native links for ordinary Markdown images. Use `\
 \end{figure}
 ```
 
-Then `Figure~\ref{fig:system}` becomes a numbered link. Clicking it navigates to the start of the `figure` environment, not to the raw label line.
+In Live Preview and Reading view, the plugin temporarily converts each resolvable `\includegraphics` path into an Obsidian image embed and sends it through Obsidian's Markdown renderer. The source file remains exactly as written. Moving the Live Preview cursor into the environment reveals the original LaTeX for editing.
+
+The figure compatibility layer recognizes `figure`/`figure*`, `\includegraphics`/`\includegraphics*`, multiline optional arguments, `\caption`, nested caption braces, `\label`, TeX comments, extensionless vault paths, and multiple images. Placement, floating, sizing, trimming, subfigures, `\graphicspath`, and other LaTeX layout behavior are intentionally not reproduced: images use Obsidian's default Markdown rendering. Keep the complete environment on its own lines.
+
+Then `Figure~\ref{fig:system}` becomes a numbered link. Clicking it scrolls to the rendered figure without moving the editor cursor into the environment or revealing the raw label.
 
 ## Bibliographies
 
 By default, every `.bib` file in the vault is indexed. Limit discovery in **Settings → LaTeX References → Bibliography paths** by entering vault-relative files or folders, one per line.
 
-Standard fenced blocks are also supported:
+Markdown fenced blocks are deliberately not bibliography sources. They remain ordinary code, even when their language is `bibtex` or `bib`. Put entries in a real `.bib` file:
 
-````markdown
 ```bibtex
 @article{knuth1984,
   author = {Donald E. Knuth},
@@ -70,7 +74,6 @@ Standard fenced blocks are also supported:
   year = {1984}
 }
 ```
-````
 
 A citation opens a matching literature note when one is available. A note can declare a key in frontmatter:
 
@@ -80,14 +83,14 @@ citekey: knuth1984
 ---
 ```
 
-The plugin also recognizes note names such as `@knuth1984.md` and `knuth1984.md`. Otherwise, it opens the entry's `.bib` file or the Markdown note that owns its `bibtex` block.
+The plugin also recognizes note names such as `@knuth1984.md` and `knuth1984.md`. Otherwise, it opens the exact entry in its `.bib` file.
 
 ## Numbering and scope
 
 - Labels are unique across the vault. If a key is duplicated, the alphabetically first path is used and validation reports the conflict.
 - Heading numbers follow the Markdown heading hierarchy within each note.
 - Only labels inside supported, unstarred LaTeX equation environments consume equation numbers.
-- Only labels inside `figure` or `figure*` environments consume figure numbers. Standard Markdown images and Obsidian image embeds are not intercepted.
+- Only labels inside `figure` or `figure*` environments consume figure numbers. Standard Markdown images and Obsidian image embeds are never intercepted.
 - Citation numbers follow first appearance within each note.
 - A label on an ordinary paragraph is a navigable anchor without an automatic number; `\ref` displays its key.
 
@@ -124,9 +127,12 @@ The parser, scanner, numbering logic, BibTeX reader, and MathJax rewrite are iso
 
 LaTeX References works entirely inside the vault. It does not make network requests, execute remote code, access files outside the vault, collect analytics, or run platform-specific binaries. Runtime code uses the Obsidian API, CodeMirror 6, MathJax supplied by Obsidian, and standard browser APIs.
 
+Notes with no supported LaTeX commands take the no-op path: the plugin creates no editor decorations, and math without `\label`, `\ref`, or `\eqref` is returned to MathJax byte-for-byte unchanged. Disabling the plugin therefore leaves ordinary Markdown behavior and every source file intact.
+
 ## Known limitations
 
 - Put at most one labelled equation environment in each display-math block in the current release.
+- Figure preview resolves vault-local files used by `\includegraphics`; it is not a general LaTeX figure or graphics engine, and graphicx layout options do not control the Markdown preview.
 - Obsidian's native Graph view and native Backlinks pane do not parse LaTeX commands as Wikilinks. Clicking rendered references and citations still performs precise navigation through the plugin's own index.
 - Bibliography formatting is intentionally numeric and lightweight. The plugin does not implement a full BibTeX or CSL style engine.
 - A newly entered math label can require the formula to rerender after the editor's normal save/update cycle.

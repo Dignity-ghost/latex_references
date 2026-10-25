@@ -24,6 +24,7 @@ export function rewriteMath(
   display: boolean,
   index: ReferenceIndex
 ): string {
+  if (!/\\(?:label|eqref|ref)\b/u.test(tex)) return tex;
   const labels: string[] = [];
   let rewritten = tex.replace(/\\label\s*\{([^{}]*)\}/gu, (_match, key: string) => {
     labels.push(key.trim());

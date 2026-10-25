@@ -98,6 +98,28 @@ export default class LatexReferencesPlugin
     this.liveUpdateTimers.set(path, timer);
   }
 
+  resolveFigureImagePath(path: string, sourcePath: string): string | null {
+    const trimmed = path.trim().replace(/^\.\//u, "");
+    if (!trimmed || /^(?:[A-Za-z][A-Za-z\d+.-]*:|\/\/)/u.test(trimmed)) return null;
+    const hasExtension = /\.[A-Za-z\d]+$/u.test(trimmed);
+    const candidates = hasExtension
+      ? [trimmed]
+      : [
+          trimmed,
+          ...[".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif", ".pdf"].map(
+            (extension) => `${trimmed}${extension}`
+          )
+        ];
+    const supportedExtensions = new Set([
+      "png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "pdf"
+    ]);
+    for (const candidate of candidates) {
+      const file = this.app.metadataCache.getFirstLinkpathDest(candidate, sourcePath);
+      if (file && supportedExtensions.has(file.extension.toLowerCase())) return file.path;
+    }
+    return null;
+  }
+
   async navigateToLabel(key: string, newPane: boolean): Promise<void> {
     const label = this.index.resolveLabel(key);
     if (!label) {
@@ -109,7 +131,13 @@ export default class LatexReferencesPlugin
       new Notice(`Reference target no longer exists: ${label.path}`);
       return;
     }
-    await this.openAtLocation(file, label.line, label.ch, newPane);
+    await this.openAtLocation(
+      file,
+      label.line,
+      label.ch,
+      newPane,
+      label.kind === "paragraph"
+    );
   }
 
   async navigateToCitation(key: string, newPane: boolean): Promise<void> {
@@ -124,8 +152,9 @@ export default class LatexReferencesPlugin
       new Notice(`Citation target no longer exists: ${path}`);
       return;
     }
-    const line = target.notePath === target.entry.path ? target.entry.line : 0;
-    await this.openAtLocation(file, line, target.entry.ch, newPane);
+    const line = target.notePath ? 0 : target.entry.line;
+    const ch = target.notePath ? 0 : target.entry.ch;
+    await this.openAtLocation(file, line, ch, newPane, true);
   }
 
   private registerVaultEvents(): void {
@@ -238,26 +267,32 @@ export default class LatexReferencesPlugin
     file: TFile,
     line: number,
     ch: number,
-    forceNewPane: boolean
+    forceNewPane: boolean,
+    moveCursor: boolean
   ): Promise<void> {
     const newPane = forceNewPane || this.settings.openLinksInNewPane;
     const leaf = this.app.workspace.getLeaf(newPane);
     try {
       await leaf.openFile(file, { eState: { line } });
-      this.revealEditorLocation(leaf, line, ch);
+      this.revealEditorLocation(leaf, line, ch, moveCursor);
     } catch (error) {
       console.error("LaTeX References: failed to open a reference target.", error);
       new Notice(`Could not open ${file.path}. The target is at line ${line + 1}.`);
     }
   }
 
-  private revealEditorLocation(leaf: WorkspaceLeaf, line: number, ch: number): void {
+  private revealEditorLocation(
+    leaf: WorkspaceLeaf,
+    line: number,
+    ch: number,
+    moveCursor: boolean
+  ): void {
     if (!(leaf.view instanceof MarkdownView)) return;
     const editor = leaf.view.editor;
     const safeLine = Math.max(0, Math.min(line, editor.lineCount() - 1));
     const safeCh = Math.max(0, Math.min(ch, editor.getLine(safeLine).length));
     const position = { line: safeLine, ch: safeCh };
-    editor.setCursor(position);
+    if (moveCursor) editor.setCursor(position);
     editor.scrollIntoView({ from: position, to: position }, true);
     leaf.view.setEphemeralState({ line: safeLine });
   }
