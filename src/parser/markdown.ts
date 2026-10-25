@@ -4,6 +4,7 @@ export interface MarkdownStructure {
   excluded: SourceRange[];
   math: Array<SourceRange & { kind: "display" | "inline" }>;
   headings: Array<SourceRange & { depth: number; text: string; number: string }>;
+  figures: Array<SourceRange & { caption: string }>;
   bibtexBlocks: SourceRange[];
 }
 
@@ -156,6 +157,38 @@ function findHeadings(source: string, excluded: SourceRange[]): MarkdownStructur
   });
 }
 
+function findFigures(source: string, excluded: SourceRange[]): MarkdownStructure["figures"] {
+  const figures: MarkdownStructure["figures"] = [];
+  const patterns = [
+    {
+      expression: /!\[([^\]\n]*)\]\((?:\\.|[^)\n])+\)/gu,
+      caption: (match: RegExpExecArray): string => match[1].trim()
+    },
+    {
+      expression: /!\[\[([^\]\n]+)\]\]/gu,
+      caption: (match: RegExpExecArray): string => {
+        const parts = match[1].split("|").map((part) => part.trim());
+        const alias = parts.slice(1).find((part) => part && !/^\d+(?:x\d+)?$/u.test(part));
+        return alias ?? parts[0];
+      }
+    }
+  ];
+
+  for (const { expression, caption } of patterns) {
+    let match: RegExpExecArray | null;
+    while ((match = expression.exec(source)) !== null) {
+      if (containsOffset(excluded, match.index)) continue;
+      figures.push({
+        from: match.index,
+        to: match.index + match[0].length,
+        caption: caption(match)
+      });
+    }
+  }
+
+  return figures.sort((a, b) => a.from - b.from);
+}
+
 export function parseMarkdownStructure(source: string): MarkdownStructure {
   const blocks = findBlockRanges(source);
   const excluded = findInlineExcluded(source, blocks.excluded);
@@ -163,6 +196,7 @@ export function parseMarkdownStructure(source: string): MarkdownStructure {
     excluded,
     math: findMathRanges(source, excluded),
     headings: findHeadings(source, excluded),
+    figures: findFigures(source, excluded),
     bibtexBlocks: blocks.bibtexBlocks
   };
 }

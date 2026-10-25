@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Render both `\ref` and `\eqref` to equation labels with parenthesized numbers.
+- Add numbered references for labelled standard Markdown images and Obsidian image embeds.
+- Add a comprehensive test note and local SVG fixture.
+
 ## 0.1.0
 
 - Add source-preserving `\label`, `\ref`, `\eqref`, and `\cite` support.

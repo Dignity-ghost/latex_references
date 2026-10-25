@@ -10,7 +10,7 @@ The plugin is designed for every Obsidian platform: Windows, macOS, Linux, iOS, 
 - Render references and citations in Live Preview and Reading view.
 - Leave commands visible and editable in Source mode.
 - Jump to labels in the current note or another note.
-- Number labelled display equations and labelled Markdown headings.
+- Number labelled display equations, Markdown headings, and image embeds.
 - Read bibliography entries from vault-local `.bib` files and fenced `bibtex` blocks.
 - Complete label and citation keys while typing.
 - Reindex after notes and bibliography files are created, edited, renamed, moved, or deleted.
@@ -35,7 +35,7 @@ Section~\ref{sec:introduction} follows earlier work~\cite{lamport1994,knuth1984}
 The Markdown file is not modified. In rendered views:
 
 - `\ref{sec:introduction}` becomes a clickable section number.
-- `\eqref{eq:objective}` becomes a clickable parenthesized equation number.
+- Both `\ref{eq:objective}` and `\eqref{eq:objective}` become clickable parenthesized equation numbers.
 - `\cite{lamport1994,knuth1984}` becomes numbered citation links.
 - `~` immediately before a command becomes a non-breaking space.
 
@@ -72,6 +72,7 @@ The plugin also recognizes note names such as `@knuth1984.md` and `knuth1984.md`
 - Labels are unique across the vault. If a key is duplicated, the alphabetically first path is used and validation reports the conflict.
 - Heading numbers follow the Markdown heading hierarchy within each note.
 - Only labelled display-math blocks consume equation numbers.
+- Put `\label{fig:key}` immediately after a standard Markdown image or Obsidian image embed. Only labelled images consume figure numbers.
 - Citation numbers follow first appearance within each note.
 - A label on an ordinary paragraph is a navigable anchor without an automatic number; `\ref` displays its key.
 
@@ -91,7 +92,7 @@ Type `\ref{`, `\eqref{`, or `\cite{` to open completion suggestions.
 
 For mobile testing, install the built files into the same vault on desktop, allow the `.obsidian` folder to sync, and then reload and enable the plugin on the mobile device.
 
-Use [MANUAL_TEST.md](./MANUAL_TEST.md) for a desktop/mobile verification checklist. Test fixtures are in [`examples/`](./examples/).
+Use [MANUAL_TEST.md](./MANUAL_TEST.md) for a desktop/mobile verification checklist. The comprehensive fixture is [`examples/latex-references-comprehensive-test.md`](./examples/latex-references-comprehensive-test.md).
 
 ## Development
 

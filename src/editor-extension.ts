@@ -11,6 +11,7 @@ import {
 import { editorLivePreviewField } from "obsidian";
 import { LatexReferencesHost } from "./host";
 import { scanMarkdown } from "./parser/scanner";
+import { formatReference } from "./reference-format";
 import { LabelRecord, ParsedCommand } from "./types";
 
 const refreshEffect = StateEffect.define<void>();
@@ -161,9 +162,8 @@ class LabelWidget extends WidgetType {
 }
 
 function labelDisplay(command: ParsedCommand, label: LabelRecord | null): string {
-  if (!label) return `?${command.argument.trim()}`;
-  const value = label.number ?? label.key;
-  return command.name === "eqref" ? `(${value})` : value;
+  const name = command.name === "eqref" ? "eqref" : "ref";
+  return formatReference(name, label, command.argument);
 }
 
 function buildDecorations(

@@ -43,7 +43,14 @@ describe("rewriteMath", () => {
     const index = fakeIndex({ "eq:a": { number: "A.1" } });
     const source = String.raw`x_{\ref{eq:a}} + \eqref{eq:a} \tag{custom}`;
     expect(rewriteMath(source, true, index)).toBe(
-      String.raw`x_{\text{A.1}} + \text{(A.1)} \tag{custom}`
+      String.raw`x_{\text{(A.1)}} + \text{(A.1)} \tag{custom}`
+    );
+  });
+
+  it("keeps non-equation ref values unparenthesized", () => {
+    const index = fakeIndex({ "sec:a": { kind: "heading", number: "2.1" } });
+    expect(rewriteMath(String.raw`x_{\ref{sec:a}}`, false, index)).toBe(
+      String.raw`x_{\text{2.1}}`
     );
   });
 

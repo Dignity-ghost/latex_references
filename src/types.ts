@@ -1,6 +1,6 @@
 export type ReferenceCommandName = "label" | "ref" | "eqref" | "cite";
 
-export type LabelKind = "equation" | "heading" | "paragraph";
+export type LabelKind = "equation" | "figure" | "heading" | "paragraph";
 
 export interface SourceLocation {
   offset: number;

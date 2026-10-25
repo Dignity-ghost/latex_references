@@ -1,6 +1,7 @@
 import { MarkdownPostProcessorContext } from "obsidian";
 import { LatexReferencesHost } from "./host";
 import { parseReferenceCommands } from "./parser/commands";
+import { formatReference } from "./reference-format";
 import { DocumentIndex, LabelRecord, ParsedCommand } from "./types";
 
 function makeLink(
@@ -29,9 +30,8 @@ function makeLink(
 
 function referenceText(command: ParsedCommand, label: LabelRecord | null): string {
   const prefix = command.hasNonBreakingPrefix ? "\u00a0" : "";
-  if (!label) return `${prefix}?${command.argument.trim()}`;
-  const number = label.number ?? label.key;
-  return `${prefix}${command.name === "eqref" ? `(${number})` : number}`;
+  const name = command.name === "eqref" ? "eqref" : "ref";
+  return `${prefix}${formatReference(name, label, command.argument)}`;
 }
 
 function labelAnchor(key: string, showMarker: boolean): HTMLSpanElement {

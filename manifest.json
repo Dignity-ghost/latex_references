@@ -1,7 +1,7 @@
 {
   "id": "latex-references",
   "name": "LaTeX References",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "1.8.0",
   "description": "Render and navigate LaTeX labels, references, and citations while keeping portable Markdown source.",
   "author": "Junwei Cui",

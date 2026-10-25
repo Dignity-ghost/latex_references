@@ -21,6 +21,20 @@ function splitCiteKeys(argument: string): string[] {
     .filter(Boolean);
 }
 
+function associatedFigure(
+  source: string,
+  figures: ReturnType<typeof parseMarkdownStructure>["figures"],
+  commandStart: number
+): (typeof figures)[number] | null {
+  for (let index = figures.length - 1; index >= 0; index -= 1) {
+    const figure = figures[index];
+    if (figure.to > commandStart) continue;
+    if (/^\s*$/u.test(source.slice(figure.to, commandStart))) return figure;
+    return null;
+  }
+  return null;
+}
+
 export function scanMarkdown(source: string, path: string): DocumentIndex {
   const structure = parseMarkdownStructure(source);
   const commands = parseReferenceCommands(source, structure.excluded, structure.math);
@@ -43,6 +57,20 @@ export function scanMarkdown(source: string, path: string): DocumentIndex {
     if (hasLabel) {
       equationCounter += 1;
       equationNumbers.set(range.from, String(equationCounter));
+    }
+  }
+
+  const figureNumbers = new Map<number, string>();
+  let figureCounter = 0;
+  for (const figure of structure.figures) {
+    const hasLabel = commands.some(
+      (command) =>
+        command.name === "label" &&
+        associatedFigure(source, [figure], command.commandStart) !== null
+    );
+    if (hasLabel) {
+      figureCounter += 1;
+      figureNumbers.set(figure.from, String(figureCounter));
     }
   }
 
@@ -107,6 +135,7 @@ export function scanMarkdown(source: string, path: string): DocumentIndex {
       (candidate) =>
         command.commandStart >= candidate.from && command.commandStart < candidate.to
     );
+    const figure = associatedFigure(source, structure.figures, command.commandStart);
     if (mathRange) {
       kind = "equation";
       number = equationNumbers.get(mathRange.from) ?? null;
@@ -114,6 +143,10 @@ export function scanMarkdown(source: string, path: string): DocumentIndex {
       kind = "heading";
       number = heading.number;
       headingText = cleanHeading(heading.text);
+    } else if (figure) {
+      kind = "figure";
+      number = figureNumbers.get(figure.from) ?? null;
+      headingText = figure.caption || null;
     }
     labels.push({
       ...location,

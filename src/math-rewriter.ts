@@ -1,4 +1,5 @@
 import { ReferenceIndex } from "./reference-index";
+import { formatReference } from "./reference-format";
 
 function mathText(value: string): string {
   const escaped = value.replace(/([{}%$#_&])/gu, "\\$1");
@@ -33,8 +34,8 @@ export function rewriteMath(
     (_match, command: string, rawKey: string) => {
       const key = rawKey.trim();
       const label = index.resolveLabel(key);
-      const value = label?.number ?? label?.key ?? `?${key}`;
-      return mathText(command === "eqref" ? `(${value})` : value);
+      const name = command === "eqref" ? "eqref" : "ref";
+      return mathText(formatReference(name, label, key));
     }
   );
 

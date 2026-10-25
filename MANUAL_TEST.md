@@ -1,6 +1,6 @@
 # Manual test checklist
 
-Use the same test vault on desktop and mobile when possible. Copy `examples/demo.md` and `examples/references.bib` into the vault before testing.
+Use the same test vault on desktop and mobile when possible. Copy `examples/latex-references-comprehensive-test.md` and `examples/latex-references-test-figure.svg` into the same vault folder before testing.
 
 ## Installation
 
@@ -20,11 +20,17 @@ Use the same test vault on desktop and mobile when possible. Copy `examples/demo
 
 - Confirm the demo formula renders as equation `(1)` without writing `\tag{1}` into the note.
 - Insert another labelled display formula before it and confirm the visible numbers update after Obsidian saves/rerenders the note.
-- Confirm `\eqref` renders a parenthesized number and `\ref` renders the bare number.
+- Confirm both `\eqref` and `\ref` render parenthesized numbers when they target equations.
+
+## Figures
+
+- Confirm a `\label{fig:key}` immediately after a standard Markdown image receives a figure number.
+- Confirm `图~\ref{fig:key}` renders as a clickable bare figure number and jumps to the image label.
+- Repeat with an Obsidian `![[image.png]]` embed if desired.
 
 ## Navigation
 
-- Click/tap a heading reference, equation reference, paragraph reference, and citation.
+- Click/tap a heading reference, equation reference, figure reference, paragraph reference, and citation.
 - Confirm each target opens and scrolls to the expected line.
 - Use Ctrl-click or Cmd-click and confirm the target opens in a new pane.
 - Open two different notes side by side and confirm references in both panes use their own document numbering.
