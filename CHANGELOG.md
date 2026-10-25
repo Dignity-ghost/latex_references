@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0
+
+- Publish the first stable release of the source-preserving LaTeX reference workflow.
+- Standardize repository documentation and examples in English, with a separate Simplified Chinese guide.
+- Identify dignifiedghost as the maintainer and confirm the MIT licensing and third-party notices.
+- Add the official Obsidian ESLint rules to local checks and continuous integration.
+- Add release provenance attestation and draft GitHub Release automation.
+- Document the complete release and Obsidian Community directory submission process.
+
 ## 0.1.3
 
 - Preserve native Obsidian behavior with explicit no-op paths for notes and math that contain no supported LaTeX commands.

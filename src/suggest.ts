@@ -97,15 +97,15 @@ export class LatexReferenceSuggest extends EditorSuggest<ReferenceSuggestion> {
   }
 
   renderSuggestion(suggestion: ReferenceSuggestion, element: HTMLElement): void {
-    const title = document.createElement("div");
-    title.className = "latex-references-suggestion-title";
-    title.textContent = suggestion.key;
-    element.append(title);
+    element.createDiv({
+      cls: "latex-references-suggestion-title",
+      text: suggestion.key
+    });
     if (suggestion.detail) {
-      const detail = document.createElement("div");
-      detail.className = "latex-references-suggestion-detail";
-      detail.textContent = suggestion.detail;
-      element.append(detail);
+      element.createDiv({
+        cls: "latex-references-suggestion-detail",
+        text: suggestion.detail
+      });
     }
   }
 

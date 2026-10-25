@@ -1,4 +1,4 @@
-# LaTeX References
+# LaTeX References 中文说明
 
 LaTeX References 让 Obsidian 支持可跳转的 `\label`、`\ref`、`\eqref` 和 `\cite`，同时始终保留 Markdown 文件中的原始 LaTeX 语法，插件不会向文件写入 `\tag`、Wikilink 或其他 Obsidian 专用标记。
 
@@ -57,7 +57,7 @@ citekey: knuth1984
 
 ## 本地安装测试
 
-1. 在本仓库运行 `npm install` 和 `npm run build`。
+1. 使用 Node.js 22，在本仓库运行 `npm ci` 和 `npm run build`。
 2. 创建 `<vault>/.obsidian/plugins/latex-references/`。
 3. 将 `main.js`、`manifest.json`、`styles.css` 复制进去。
 4. 重载 Obsidian，在“设置 → 第三方插件”中启用 **LaTeX References**。
@@ -67,3 +67,9 @@ citekey: knuth1984
 桌面与移动端的逐项检查表见 [MANUAL_TEST.md](./MANUAL_TEST.md)。完整测试笔记为 [`examples/latex-references-comprehensive-test.md`](./examples/latex-references-comprehensive-test.md)，复制时请同时带上同目录的 `references.bib` 和测试 SVG。
 
 更完整的语法、编号规则、限制和开发说明见 [英文 README](./README.md)。
+
+## 作者、许可与开发致谢
+
+本插件由 **dignifiedghost** 维护，采用 [MIT 许可证](./LICENSE) 开源。架构设计参考了采用 MIT 许可证的 Equation Ordinal 和 Cite，但当前实现没有复制这些项目的源代码；详情见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。
+
+初始实现及 1.0.0 版本整理过程中使用了 Codex 中的 OpenAI GPT-5.6 Sol 模型协助开发。维护者已审查并对源代码、测试、文档、许可和发布负责；该 AI 工具不是插件的运行时依赖。

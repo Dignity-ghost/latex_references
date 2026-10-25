@@ -27,7 +27,7 @@ export class LatexReferencesSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Render references")
-      .setDesc("Render \\ref and \\eqref as navigable links in Live Preview and Reading view.")
+      .setDesc("Render \\ref and \\eqref as navigable links in the editor preview and reading view.")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.renderReferences).onChange(async (value) => {
           this.plugin.settings.renderReferences = value;
@@ -37,7 +37,7 @@ export class LatexReferencesSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Render citations")
-      .setDesc("Render \\cite as numbered links to literature notes or BibTeX entries.")
+      .setDesc("Render \\cite as numbered links to literature notes or bibliography entries.")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.renderCitations).onChange(async (value) => {
           this.plugin.settings.renderCitations = value;

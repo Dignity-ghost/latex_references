@@ -2,6 +2,8 @@
 
 LaTeX References adds navigable `\label`, `\ref`, `\eqref`, and `\cite` commands to Obsidian without rewriting the Markdown file. The source remains portable LaTeX that can later be moved into a real LaTeX project.
 
+For the standalone Simplified Chinese guide, see [README_zh.md](./README_zh.md).
+
 The plugin is designed for every Obsidian platform: Windows, macOS, Linux, iOS, iPadOS, and Android. It uses no Node.js or Electron runtime APIs, external programs, accounts, telemetry, or network requests.
 
 ## Features
@@ -103,7 +105,7 @@ Type `\ref{`, `\eqref{`, or `\cite{` to open completion suggestions.
 
 ## Installation for testing
 
-1. Run `npm install` and `npm run build`.
+1. Use Node.js 22, then run `npm ci` and `npm run build`.
 2. Create `<vault>/.obsidian/plugins/latex-references/`.
 3. Copy `main.js`, `manifest.json`, and `styles.css` into that folder.
 4. Reload Obsidian and enable **LaTeX References** under **Settings → Community plugins**.
@@ -112,10 +114,13 @@ For mobile testing, install the built files into the same vault on desktop, allo
 
 Use [MANUAL_TEST.md](./MANUAL_TEST.md) for a desktop/mobile verification checklist. The comprehensive fixture is [`examples/latex-references-comprehensive-test.md`](./examples/latex-references-comprehensive-test.md).
 
+Release maintainers should follow [RELEASING.md](./RELEASING.md). Obsidian release tags must match `manifest.json` exactly and must not have a `v` prefix.
+
 ## Development
 
 ```sh
-npm install
+npm ci
+npm run lint
 npm run typecheck
 npm test
 npm run build
@@ -139,4 +144,6 @@ Notes with no supported LaTeX commands take the no-op path: the plugin creates n
 
 ## License and acknowledgements
 
-LaTeX References is released under the MIT License. Its architecture was informed by [Equation Ordinal](https://github.com/Junzi-ana/equation-ordinal) and [Cite](https://github.com/PMGWork/obsidian-cite), both MIT-licensed Obsidian plugins. No source code from either project is copied in this initial implementation. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+LaTeX References is maintained by **dignifiedghost** and released under the [MIT License](./LICENSE). Its architecture was informed by [Equation Ordinal](https://github.com/Junzi-ana/equation-ordinal) and [Cite](https://github.com/PMGWork/obsidian-cite), both MIT-licensed Obsidian plugins. No source code from either project is copied in this implementation. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+
+Development of the initial implementation and the 1.0.0 release was assisted by OpenAI's GPT-5.6 Sol model through Codex. The maintainer reviewed and remains responsible for the source, tests, documentation, licensing, and releases. The AI tooling is not a runtime dependency.

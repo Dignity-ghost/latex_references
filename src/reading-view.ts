@@ -16,7 +16,7 @@ function makeLink(
   className: string,
   action: (newPane: boolean) => void
 ): HTMLAnchorElement {
-  const link = document.createElement("a");
+  const link = createEl("a");
   link.href = "#";
   link.className = className;
   link.textContent = text;
@@ -41,7 +41,7 @@ function referenceText(command: ParsedCommand, label: LabelRecord | null): strin
 }
 
 function labelAnchor(key: string, showMarker: boolean): HTMLSpanElement {
-  const anchor = document.createElement("span");
+  const anchor = createSpan();
   anchor.className = "latex-references-label-anchor";
   anchor.id = `latex-label-${encodeURIComponent(key)}`;
   anchor.dataset.label = key;
@@ -58,19 +58,19 @@ function citationElement(
   command: ParsedCommand,
   documentIndex: DocumentIndex | null
 ): HTMLElement {
-  const wrapper = document.createElement("span");
+  const wrapper = createSpan();
   wrapper.className = "latex-references-citation";
-  if (command.hasNonBreakingPrefix) wrapper.append(document.createTextNode("\u00a0"));
+  if (command.hasNonBreakingPrefix) wrapper.appendText("\u00a0");
   if (command.options.length === 2) {
-    wrapper.append(document.createTextNode(`${command.options[0]} `));
+    wrapper.appendText(`${command.options[0]} `);
   }
-  wrapper.append(document.createTextNode("["));
+  wrapper.appendText("[");
   const keys = command.argument
     .split(",")
     .map((key) => key.trim())
     .filter(Boolean);
   keys.forEach((key, index) => {
-    if (index > 0) wrapper.append(document.createTextNode(", "));
+    if (index > 0) wrapper.appendText(", ");
     const target = host.index.resolveCitation(key);
     const number = documentIndex?.citationNumbers.get(key) ?? null;
     wrapper.append(
@@ -83,11 +83,9 @@ function citationElement(
     );
   });
   if (command.options.length > 0) {
-    wrapper.append(
-      document.createTextNode(`, ${command.options[command.options.length - 1] ?? ""}`)
-    );
+    wrapper.appendText(`, ${command.options[command.options.length - 1] ?? ""}`);
   }
-  wrapper.append(document.createTextNode("]"));
+  wrapper.appendText("]");
   return wrapper;
 }
 
@@ -137,7 +135,7 @@ async function renderFigureSection(
     )}`;
   }
 
-  const rendered = document.createElement("div");
+  const rendered = createDiv();
   const child = new MarkdownRenderChild(rendered);
   context.addChild(child);
   try {
@@ -168,10 +166,10 @@ function transformTextNode(
   const text = node.data;
   const commands = parseReferenceCommands(text);
   if (commands.length === 0) return;
-  const fragment = document.createDocumentFragment();
+  const fragment = createFragment();
   let cursor = 0;
   for (const command of commands) {
-    fragment.append(document.createTextNode(text.slice(cursor, command.start)));
+    fragment.appendText(text.slice(cursor, command.start));
     const key = command.argument.trim();
     if (command.name === "label") {
       fragment.append(labelAnchor(key, host.settings.showLabelMarkers));
@@ -191,11 +189,11 @@ function transformTextNode(
     } else if (command.name === "cite" && host.settings.renderCitations) {
       fragment.append(citationElement(host, command, documentIndex));
     } else {
-      fragment.append(document.createTextNode(text.slice(command.start, command.end)));
+      fragment.appendText(text.slice(command.start, command.end));
     }
     cursor = command.end;
   }
-  fragment.append(document.createTextNode(text.slice(cursor)));
+  fragment.appendText(text.slice(cursor));
   node.replaceWith(fragment);
 }
 
@@ -208,11 +206,14 @@ export function createReadingPostProcessor(host: LatexReferencesHost) {
     if (!element.textContent?.includes("\\")) return;
     const documentIndex = host.index.getDocument(context.sourcePath);
     if (await renderFigureSection(element, context, host, documentIndex)) return;
-    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    const walker = element.doc.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     const nodes: Text[] = [];
     let current = walker.nextNode();
     while (current) {
-      if (current instanceof Text && !shouldSkipNode(current)) nodes.push(current);
+      if (current.nodeType === Node.TEXT_NODE) {
+        const textNode = current as Text;
+        if (!shouldSkipNode(textNode)) nodes.push(textNode);
+      }
       current = walker.nextNode();
     }
     for (const node of nodes) transformTextNode(node, host, documentIndex);

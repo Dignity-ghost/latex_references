@@ -20,7 +20,7 @@ function plainCaption(value: string): string {
 function altText(value: string): string {
   return plainCaption(value)
     .replace(/\$([^$]*)\$/gu, "$1")
-    .replace(/[\[\]\\]/gu, " ")
+    .replace(/[[\]\\]/gu, " ")
     .replace(/\s+/gu, " ")
     .trim();
 }

@@ -12,6 +12,19 @@ if (!/^\d+\.\d+\.\d+$/.test(manifest.version)) {
 if (manifest.version !== packageJson.version) {
   errors.push("manifest.json and package.json versions differ");
 }
+if (manifest.author !== "dignifiedghost" || packageJson.author !== manifest.author) {
+  errors.push("manifest.json and package.json must identify dignifiedghost as the author");
+}
+if (
+  typeof manifest.description !== "string" ||
+  manifest.description.length > 250 ||
+  !manifest.description.endsWith(".")
+) {
+  errors.push("manifest description must be at most 250 characters and end with a period");
+}
+if (manifest.id.includes("obsidian")) {
+  errors.push("manifest id must not contain obsidian");
+}
 if (versions[manifest.version] !== manifest.minAppVersion) {
   errors.push("versions.json does not map this version to minAppVersion");
 }

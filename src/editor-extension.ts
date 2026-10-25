@@ -34,7 +34,7 @@ function createAccessibleLink(
   className: string,
   action: (newPane: boolean) => void
 ): HTMLAnchorElement {
-  const link = document.createElement("a");
+  const link = createEl("a");
   link.className = className;
   link.textContent = text;
   link.title = title;
@@ -106,15 +106,15 @@ class CitationWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const wrapper = document.createElement("span");
+    const wrapper = createSpan();
     wrapper.className = "latex-references-citation";
-    if (this.nonBreakingPrefix) wrapper.append(document.createTextNode("\u00a0"));
+    if (this.nonBreakingPrefix) wrapper.appendText("\u00a0");
     if (this.options.length === 2) {
-      wrapper.append(document.createTextNode(`${this.options[0]} `));
+      wrapper.appendText(`${this.options[0]} `);
     }
-    wrapper.append(document.createTextNode("["));
+    wrapper.appendText("[");
     this.keys.forEach((key, index) => {
-      if (index > 0) wrapper.append(document.createTextNode(", "));
+      if (index > 0) wrapper.appendText(", ");
       const number = this.numbers[index];
       wrapper.append(
         createAccessibleLink(
@@ -126,11 +126,9 @@ class CitationWidget extends WidgetType {
       );
     });
     if (this.options.length > 0) {
-      wrapper.append(
-        document.createTextNode(`, ${this.options[this.options.length - 1] ?? ""}`)
-      );
+      wrapper.appendText(`, ${this.options[this.options.length - 1] ?? ""}`);
     }
-    wrapper.append(document.createTextNode("]"));
+    wrapper.appendText("]");
     return wrapper;
   }
 
@@ -149,7 +147,7 @@ class LabelWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const marker = document.createElement("span");
+    const marker = createSpan();
     marker.className = "latex-references-label-marker";
     marker.textContent = "¶";
     marker.title = `Label: ${this.key}`;
@@ -184,7 +182,7 @@ class FigureWidget extends WidgetType {
   }
 
   toDOM(view: EditorView): HTMLElement {
-    const container = document.createElement("div");
+    const container = createDiv();
     container.className = "latex-references-figure";
     container.dataset.label = this.figure.labelKey ?? "";
     const component = new Component();
@@ -199,7 +197,7 @@ class FigureWidget extends WidgetType {
     )
       .catch((error) => {
         console.error("LaTeX References: failed to render a figure preview.", error);
-        container.textContent = "Figure preview unavailable. Move the cursor here to edit the source.";
+        container.textContent = "Figure preview is unavailable. Move the insertion point here to edit the source.";
       })
       .finally(() => view.requestMeasure());
     return container;

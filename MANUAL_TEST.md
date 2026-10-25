@@ -30,7 +30,7 @@ Use the same test vault on desktop and mobile when possible. Copy `examples/late
 - Confirm standard Markdown images and Obsidian `![[image.png]]` embeds keep their native links and are not numbered by the plugin.
 - Confirm the regular LaTeX `figure` fixture renders its extensionless `\includegraphics` path as the SVG through Obsidian's native renderer.
 - Confirm its multiline graphicx options, `\caption`, and `\label{fig:workflow}` are parsed, while the image uses Obsidian's default size rather than emulating `width=0.75\linewidth`.
-- Confirm `图~\ref{fig:workflow}` renders as a clickable bare number and scrolls to the rendered figure without moving the cursor into the environment or revealing the label source.
+- Confirm `Figure~\ref{fig:workflow}` renders as a clickable bare number and scrolls to the rendered figure without moving the cursor into the environment or revealing the label source.
 - Move the cursor into the figure and confirm the unmodified regular LaTeX source appears for editing; move it out and confirm the preview returns.
 
 ## Navigation

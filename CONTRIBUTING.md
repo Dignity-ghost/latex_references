@@ -15,3 +15,5 @@ Before opening a pull request, run:
 npm ci
 npm run check
 ```
+
+`npm run check` validates release metadata and runtime portability, applies the official Obsidian ESLint rules, runs TypeScript checks and unit tests, and creates a production build.

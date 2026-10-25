@@ -19,7 +19,7 @@ export class MathJaxHook {
 
   async install(): Promise<boolean> {
     await loadMathJax();
-    const runtime = (globalThis as typeof globalThis & { MathJax?: MathJaxRuntime }).MathJax;
+    const runtime = (window as Window & { MathJax?: MathJaxRuntime }).MathJax;
     if (!runtime || typeof runtime.tex2chtml !== "function") return false;
     const original = runtime.tex2chtml;
     const index = this.index;
