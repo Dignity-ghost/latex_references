@@ -3,7 +3,13 @@ import { readFile } from "node:fs/promises";
 const manifest = JSON.parse(await readFile("manifest.json", "utf8"));
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
 const versions = JSON.parse(await readFile("versions.json", "utf8"));
-const tag = process.env.GITHUB_REF_NAME;
+const githubRef = process.env.GITHUB_REF;
+const githubRefName = process.env.GITHUB_REF_NAME;
+const isReleaseTag =
+  process.env.GITHUB_REF_TYPE === "tag" || githubRef?.startsWith("refs/tags/");
+const tag = isReleaseTag
+  ? githubRefName ?? githubRef?.slice("refs/tags/".length)
+  : undefined;
 
 const errors = [];
 if (!/^\d+\.\d+\.\d+$/.test(manifest.version)) {
