@@ -1,0 +1,32 @@
+{
+  "name": "latex-references",
+  "version": "0.1.0",
+  "description": "Obsidian references and citations that keep portable LaTeX syntax in Markdown.",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "npm run typecheck && node esbuild.config.mjs production",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "node scripts/verify-release.mjs && node scripts/check-runtime.mjs && npm run typecheck && npm test && npm run build"
+  },
+  "keywords": [
+    "obsidian",
+    "latex",
+    "references",
+    "citations",
+    "bibtex"
+  ],
+  "author": "Junwei Cui",
+  "license": "MIT",
+  "devDependencies": {
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.6",
+    "@types/node": "^24.10.0",
+    "esbuild": "^0.25.11",
+    "obsidian": "^1.14.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12"
+  }
+}

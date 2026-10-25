@@ -1,0 +1,120 @@
+# LaTeX References
+
+LaTeX References adds navigable `\label`, `\ref`, `\eqref`, and `\cite` commands to Obsidian without rewriting the Markdown file. The source remains portable LaTeX that can later be moved into a real LaTeX project.
+
+The plugin is designed for every Obsidian platform: Windows, macOS, Linux, iOS, iPadOS, and Android. It uses no Node.js or Electron runtime APIs, external programs, accounts, telemetry, or network requests.
+
+## Features
+
+- Keep literal LaTeX commands in Markdown.
+- Render references and citations in Live Preview and Reading view.
+- Leave commands visible and editable in Source mode.
+- Jump to labels in the current note or another note.
+- Number labelled display equations and labelled Markdown headings.
+- Read bibliography entries from vault-local `.bib` files and fenced `bibtex` blocks.
+- Complete label and citation keys while typing.
+- Reindex after notes and bibliography files are created, edited, renamed, moved, or deleted.
+- Report unresolved references, missing citation keys, invalid labels, and duplicate labels.
+
+## Syntax
+
+```markdown
+# Introduction \label{sec:introduction}
+
+The objective is
+
+$$
+L(\theta) = \sum_i \ell_i(\theta).
+\label{eq:objective}
+$$
+
+As shown in Equation~\eqref{eq:objective}, the method from
+Section~\ref{sec:introduction} follows earlier work~\cite{lamport1994,knuth1984}.
+```
+
+The Markdown file is not modified. In rendered views:
+
+- `\ref{sec:introduction}` becomes a clickable section number.
+- `\eqref{eq:objective}` becomes a clickable parenthesized equation number.
+- `\cite{lamport1994,knuth1984}` becomes numbered citation links.
+- `~` immediately before a command becomes a non-breaking space.
+
+Put only one `\label` in each display-math block in the current release. A label in inline math is reported as invalid.
+
+## Bibliographies
+
+By default, every `.bib` file in the vault is indexed. Limit discovery in **Settings → LaTeX References → Bibliography paths** by entering vault-relative files or folders, one per line.
+
+Standard fenced blocks are also supported:
+
+````markdown
+```bibtex
+@article{knuth1984,
+  author = {Donald E. Knuth},
+  title = {Literate Programming},
+  year = {1984}
+}
+```
+````
+
+A citation opens a matching literature note when one is available. A note can declare a key in frontmatter:
+
+```yaml
+---
+citekey: knuth1984
+---
+```
+
+The plugin also recognizes note names such as `@knuth1984.md` and `knuth1984.md`. Otherwise, it opens the entry's `.bib` file or the Markdown note that owns its `bibtex` block.
+
+## Numbering and scope
+
+- Labels are unique across the vault. If a key is duplicated, the alphabetically first path is used and validation reports the conflict.
+- Heading numbers follow the Markdown heading hierarchy within each note.
+- Only labelled display-math blocks consume equation numbers.
+- Citation numbers follow first appearance within each note.
+- A label on an ordinary paragraph is a navigable anchor without an automatic number; `\ref` displays its key.
+
+## Commands
+
+- **Rebuild reference index** rescans the vault.
+- **Validate references in current note** reports syntax, duplicate, unresolved-reference, and missing-citation counts.
+
+Type `\ref{`, `\eqref{`, or `\cite{` to open completion suggestions.
+
+## Installation for testing
+
+1. Run `npm install` and `npm run build`.
+2. Create `<vault>/.obsidian/plugins/latex-references/`.
+3. Copy `main.js`, `manifest.json`, and `styles.css` into that folder.
+4. Reload Obsidian and enable **LaTeX References** under **Settings → Community plugins**.
+
+For mobile testing, install the built files into the same vault on desktop, allow the `.obsidian` folder to sync, and then reload and enable the plugin on the mobile device.
+
+Use [MANUAL_TEST.md](./MANUAL_TEST.md) for a desktop/mobile verification checklist. Test fixtures are in [`examples/`](./examples/).
+
+## Development
+
+```sh
+npm install
+npm run typecheck
+npm test
+npm run build
+```
+
+The parser, scanner, numbering logic, BibTeX reader, and MathJax rewrite are isolated from Obsidian where practical and covered by unit tests.
+
+## Privacy and platform compatibility
+
+LaTeX References works entirely inside the vault. It does not make network requests, execute remote code, access files outside the vault, collect analytics, or run platform-specific binaries. Runtime code uses the Obsidian API, CodeMirror 6, MathJax supplied by Obsidian, and standard browser APIs.
+
+## Known limitations
+
+- One display-math block currently has one equation number. Multiple labels in the same block resolve to that number.
+- Obsidian's native Graph view and native Backlinks pane do not parse LaTeX commands as Wikilinks. Clicking rendered references and citations still performs precise navigation through the plugin's own index.
+- Bibliography formatting is intentionally numeric and lightweight. The plugin does not implement a full BibTeX or CSL style engine.
+- A newly entered math label can require the formula to rerender after the editor's normal save/update cycle.
+
+## License and acknowledgements
+
+LaTeX References is released under the MIT License. Its architecture was informed by [Equation Ordinal](https://github.com/Junzi-ana/equation-ordinal) and [Cite](https://github.com/PMGWork/obsidian-cite), both MIT-licensed Obsidian plugins. No source code from either project is copied in this initial implementation. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
